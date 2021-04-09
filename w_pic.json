@@ -1,0 +1,30 @@
+{
+    "icons":
+    {
+        "clear" : {
+	      "d": "w_clear.png",
+	      "n": "w_clear_n.png" },
+        "partly-cloudy" : "w_p_cloudy.png", 
+        "partly-cloudy" : {
+	      "d": "w_p_cloudy.png",
+	      "n": "w_p_cloudy_n.png" },
+        "cloudy" : "w_clouds.png", 
+        "overcast" : "w_clouds.png", 
+        "drizzle" : "w_rain1.png", 
+        "light-rain" : "w_rain1.png", 
+        "rain" : "w_rain1.png", 
+        "moderate-rain" : "w_rain2.png", 
+        "heavy-rain" : "w_rain3.png", 
+        "continuous-heavy-rain" : "w_rain4.png", 
+        "showers" : "w_rain5.png", 
+        "wet-snow" : "w_rain_snow.png", 
+        "light-snow" : "w_snow.png", 
+        "snow" : "w_snow.png", 
+        "snow-showers" : "w_hail.png", 
+        "hail" : "w_hail.png", 
+        "thunderstorm" : "w_thunderstorn.png", 
+        "thunderstorm-with-rain" : "w_thunderstorm_w_rain.png", 
+        "thunderstorm-with-hail" : "w_thunderstorm_w_rain.png"
+
+    }
+}
