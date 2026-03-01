@@ -1,0 +1,7 @@
+#ifndef WEATHER_DEFINES_H
+#define WEATHER_DEFINES_H
+
+#define WIFI_STACK_SIZE 500
+#define WIFI_PRIORYTIY 5
+
+#endif

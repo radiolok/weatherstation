@@ -1,0 +1,51 @@
+/delete-node/ &storage_partition;
+
+/ {
+	chosen {
+		zephyr,flash-controller = &flash0;
+	};
+};
+
+&flash0 {
+	partitions {
+		/* Set 8Kb of storage at the end of the 1Mb of flash */
+		storage_partition: partition@fe000 {
+			label = "storage";
+			reg = <0x000fe000 DT_SIZE_K(8)>;
+		};
+	};
+};
+
+/ {
+    dht21: dht21 {
+    compatible = "aosong,dht";
+    label = "DHT21";
+    dht-gpios = <&gpio0 5 (GPIO_PULL_UP | GPIO_OPEN_DRAIN)>;
+    dht-device-type = <DHT_TYPE_AM2301>;
+    status = "okay";
+    };
+};
+
+
+
+&uart1 {
+    status = "okay";
+    current-speed = <9600>;
+    tx-pin = <17>;   /* TX ESP32 -> RX датчика MH-Z19B */
+    rx-pin = <16>;   /* RX ESP32 <- TX датчика MH-Z19B */
+
+    mhz19b {
+        compatible = "winsen,mhz19b";
+        label = "MHZ19B";
+        /* maximum-range = <10000>; */
+        /* abc-on; */
+    };
+};
+
+&uart2 {
+    status = "okay";
+    current-speed = <9600>;
+    tx-pin = <18>;
+    rx-pin = <19>;
+    /* Если нужен пин для управления RE/DE RS-485, можно добавить отдельный gpio */
+};
