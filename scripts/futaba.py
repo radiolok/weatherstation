@@ -21,6 +21,8 @@ calibration_params = bme280.load_calibration_params(bus, address)
 
 SCRIPT_FILE_PATH = os.path.abspath(os.path.dirname(__file__))
 
+IMG_FILE_PATH = os.path.join(SCRIPT_FILE_PATH, "/../img/")
+
 IMAGE_WIDTH=112
 IMAGE_HEIGHT=16
 
@@ -82,7 +84,7 @@ def GetWeather(data, pic_list):
                     else:
                         pic_file = None
     if pic_file != None:
-        pic_file = SCRIPT_FILE_PATH + '/' + pic_file
+        pic_file = IMG_FILE_PATH  + pic_file
     return temp, wind_speed, humidity, pic_file
 
 def GetWeatherForecast(data , pic_list, forecast):
@@ -95,7 +97,7 @@ def GetWeatherForecast(data , pic_list, forecast):
             keys = list(forecasts)
             keys = [ x for x in keys if "_short" not in x ]
             forecast_data = forecasts[keys[forecast]]
-            name = keys[forecast] 
+            name = keys[forecast]
             temp = forecast_data["temp_avg"]
             condition = forecast_data["condition"]
         if pic_list != None:
@@ -109,7 +111,7 @@ def GetWeatherForecast(data , pic_list, forecast):
                     else:
                         pic_file = None
     if pic_file != None:
-        pic_file = SCRIPT_FILE_PATH + '/' + pic_file
+        pic_file = IMG_FILE_PATH  + pic_file
     return temp, name, pic_file
 
 def AddChecksum(data):
@@ -153,7 +155,7 @@ def WriteText(msg, text,font = None, posx = None, posy = None):
         msg.append(font)
     msg = msg + bytearray(text.encode('utf-8'))
     return msg
-    
+
 def SendMobitecImage(msg, hex_array, Pw, Ph, pos):
     row_max = int(Ph/4) + int (Ph% 4)
     for row in range (0, row_max):
@@ -189,7 +191,7 @@ def WriteTime(tty, seconds):
     current = now.strftime("%a %-d %b %H:%M")
     msg = bytearray()
     msg = AddHeader(msg)
-    shift = 30 
+    shift = 30
     msg = WriteText(msg, current, font=0x71)
     msg = AddChecksum(msg)
     tty.write(msg)
@@ -211,7 +213,7 @@ def HumidityPressure(tty, humidity, pressure):
     msg = bytearray()
     msg = AddHeader(msg)
     msg = AddHumidity(msg, humidity, 0)
-    string_right = "%dmm" % (int(mmHg)) 
+    string_right = "%dmm" % (int(mmHg))
     msg = WriteText(msg, string_right, font = 0x68, posx = 60)
     msg = AddChecksum(msg)
     tty.write(msg)
@@ -219,16 +221,16 @@ def HumidityPressure(tty, humidity, pressure):
 
 
 def AddTemperature(msg, temp, pos):
-    start_pos = pos 
+    start_pos = pos
     symbol = ' '
     if temp < 0:
         symbol = '-'
     #plus
     if temp > 0:
-        image,Pw,Ph = ConvertMobitecImage(SCRIPT_FILE_PATH+"/plus.png", True)
+        image,Pw,Ph = ConvertMobitecImage(IMG_FILE_PATH+"/plus.png", True)
         msg = SendMobitecImage(msg, image, Pw, Ph, start_pos - 1)
     #text:
-    string_right = "%c%d" % (symbol, int(abs(temp))) 
+    string_right = "%c%d" % (symbol, int(abs(temp)))
     if temp > -10 and temp < 10:
         string_right += " C"
     msg = WriteText(msg, string_right, font = 0x68, posx = start_pos)
@@ -236,20 +238,20 @@ def AddTemperature(msg, temp, pos):
     shift = 6
     for symbol in str(int(abs(temp))):
         shift += 6 if symbol == '1' else 9
-    image,Pw,Ph = ConvertMobitecImage(SCRIPT_FILE_PATH+"/degree.png", True)
+    image,Pw,Ph = ConvertMobitecImage(IMG_FILE_PATH+"/degree.png", True)
     msg = SendMobitecImage(msg, image, Pw, Ph, start_pos + shift)
     return msg
 
 def AddHumidity(msg, humidity, pos):
     #hymidity_icon
-    image,Pw,Ph = ConvertMobitecImage(SCRIPT_FILE_PATH+"/drop.png", True)
+    image,Pw,Ph = ConvertMobitecImage(IMG_FILE_PATH+"/drop.png", True)
     msg = SendMobitecImage(msg, image, Pw, Ph, pos)
-    string_right = "%d" % (int(humidity)) 
+    string_right = "%d" % (int(humidity))
     msg = WriteText(msg, string_right, font = 0x68, posx = pos + 10)
     shift = pos + 10
     for symbol in str(int(humidity)):
         shift += 6 if symbol == '1' else 9
-    image,Pw,Ph = ConvertMobitecImage(SCRIPT_FILE_PATH+"/percent.png", True)
+    image,Pw,Ph = ConvertMobitecImage(IMG_FILE_PATH+"/percent.png", True)
     msg = SendMobitecImage(msg, image, Pw, Ph, shift)
     return msg
 
@@ -274,20 +276,20 @@ if __name__ == '__main__':
     term_parity = serial.PARITY_ODD
     userport = args.userport
 
-    tty = serial.Serial(userport, 
-                            4800, 
-                            bytesize=8, 
+    tty = serial.Serial(userport,
+                            4800,
+                            bytesize=8,
                             stopbits = 1)
 
     with open(SCRIPT_FILE_PATH+"/yandex-weather.json", "r") as fp:
         data = json.load(fp)
-    with open(SCRIPT_FILE_PATH+"/w_pic.json", "r") as pics:
+    with open(IMG_FILE_PATH+"/w_pic.json", "r") as pics:
         pic_list = json.load(pics)
 
     temp, wind_speed, humidity, pic_file = GetWeather(data, pic_list)
     temp_fc0, name_fc0, pic_file_fc0 = GetWeatherForecast(data, pic_list, 0)
     temp_fc1, name_fc1, pic_file_fc1 = GetWeatherForecast(data, pic_list, 1)
-    
+
     TempPicWind(tty, temp, pic_file, wind_speed)
     sleep(9)
     TempPicText(tty, temp_fc0, pic_file_fc0, name_fc0)
