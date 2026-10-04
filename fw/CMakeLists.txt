@@ -26,6 +26,15 @@ target_sources(app PRIVATE
   src/sensors/sensors.c
 )
 
+if(CONFIG_WS_NET)
+  target_sources(app PRIVATE src/net/net_mgr.c src/net/timesync.c)
+  if(CONFIG_WS_NET_WIFI)
+    target_sources(app PRIVATE src/net/wifi_esp32.c)
+  else()
+    target_sources(app PRIVATE src/net/wifi_none.c)
+  endif()
+endif()
+
 # Emulators behind the same aliases on native_sim (BME280 on i2c-emul,
 # MH-Z19B on uart-emul, sign sniffer, button through gpio-emul)
 if(CONFIG_WS_EMUL)
