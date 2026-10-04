@@ -94,8 +94,8 @@ const char *ws_vsrc_name(int src)
 void ws_vars_init(struct ws_vars *vars)
 {
 	memset(vars, 0, sizeof(*vars));
-	vars->fc_rx = -1;
-	vars->obs_rx = -1;
+	vars->fc_rx = WS_RX_NEVER;
+	vars->obs_rx = WS_RX_NEVER;
 }
 
 static void touch(struct ws_vars *vars)
@@ -169,7 +169,7 @@ void ws_vars_set_ext_ttl(struct ws_vars *vars, int ext_idx, uint32_t ttl_s)
 
 static int32_t age_min(int64_t ts, int64_t rx, const struct ws_now *now)
 {
-	if (rx < 0) {
+	if (rx == WS_RX_NEVER) {
 		return WS_AGE_NEVER;
 	}
 	int64_t s;

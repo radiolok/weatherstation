@@ -1692,3 +1692,110 @@ int ws_cfg_to_json(const struct ws_config *c, char *buf, size_t len)
 	ws_jw_obj_end(&w);
 	return w.ok ? (int)w.pos : -1;
 }
+
+/* ---- catalogue for the editor (GET /api/catalog) ---- */
+
+struct type_meta {
+	const char *label;
+	const char *group;
+	const char *params; /* comma separated parameter names */
+};
+
+static const struct type_meta type_meta[WS_IT_COUNT] = {
+	[WS_IT_TEMP] = {"Температура", "Улица", "var,plus,tenths,deg,align"},
+	[WS_IT_ICON] = {"Иконка погоды", "Улица", "var,align"},
+	[WS_IT_NUMBER] = {"Число", "Дома", "var,decimals,digits,prefix,suffix,picto,align"},
+	[WS_IT_RAIN] = {"Осадки", "Прогноз", "none,hours,skip,align"},
+	[WS_IT_WIND] = {"Ветер", "Улица", "var,dir,align"},
+	[WS_IT_RANGE] = {"Макс/мин", "Прогноз", "hours,align"},
+	[WS_IT_PRESSURE] = {"Давление", "Дома", "var,trend,align"},
+	[WS_IT_HUMIDITY] = {"Влажность", "Дома", "var,align"},
+	[WS_IT_CO2] = {"CO2", "Дома", "invert,align"},
+	[WS_IT_GRAPH] = {"График", "Прогноз", "hours"},
+	[WS_IT_CLOCK] = {"Часы", "Время", "align"},
+	[WS_IT_TEXT] = {"Текст", "Оформление", "text,align"},
+	[WS_IT_PICTO] = {"Пиктограмма", "Оформление", "name,align"},
+	[WS_IT_SEP] = {"Разделитель", "Оформление", "dashed"},
+	[WS_IT_ROTATOR] = {"Зона ротации", "Оформление", "period,offset"},
+};
+
+int ws_catalog_json(const struct ws_config *cfg, char *buf, size_t len)
+{
+	struct ws_jw w;
+	char p[96];
+
+	ws_jw_init(&w, buf, len);
+	ws_jw_obj(&w);
+	ws_jw_key(&w, "types");
+	ws_jw_arr(&w);
+	for (int t = 0; t < WS_IT_COUNT; t++) {
+		ws_jw_obj(&w);
+		ws_jw_kstr(&w, "type", type_names[t]);
+		ws_jw_kstr(&w, "label", type_meta[t].label);
+		ws_jw_kstr(&w, "group", type_meta[t].group);
+		ws_jw_kstr(&w, "form", form_names[form_default[t]]);
+		ws_jw_key(&w, "forms");
+		ws_jw_arr(&w);
+		for (int f = 0; f <= WS_FORM_S2; f++) {
+			if (forms_allowed[t] & (1 << f)) {
+				ws_jw_str(&w, form_names[f]);
+			}
+		}
+		ws_jw_arr_end(&w);
+		ws_jw_key(&w, "var");
+		if (var_default[t] != WS_V_NONE) {
+			ws_jw_str(&w, ws_var_name(var_default[t]));
+		} else {
+			ws_jw_null(&w);
+		}
+		ws_jw_key(&w, "vars");
+		ws_jw_arr(&w);
+		for (int v = 0; v < WS_V_COUNT; v++) {
+			if (var_default[t] != WS_V_NONE || t == WS_IT_NUMBER) {
+				if (var_fits(t, v)) {
+					ws_jw_str(&w, ws_var_name(v));
+				}
+			}
+		}
+		ws_jw_arr_end(&w);
+		ws_jw_key(&w, "params");
+		ws_jw_arr(&w);
+		snprintf(p, sizeof(p), "%s", type_meta[t].params);
+		for (char *s = strtok(p, ","); s; s = strtok(NULL, ",")) {
+			ws_jw_str(&w, s);
+		}
+		ws_jw_arr_end(&w);
+		ws_jw_obj_end(&w);
+	}
+	ws_jw_arr_end(&w);
+	ws_jw_key(&w, "pictos");
+	ws_jw_arr(&w);
+	for (size_t i = 0; i < ws_picto_builtin_count(); i++) {
+		ws_jw_str(&w, ws_picto_builtin_name(i));
+	}
+	for (int i = 0; cfg && i < cfg->n_pictos; i++) {
+		ws_jw_str(&w, cfg->pictos[i].name);
+	}
+	ws_jw_arr_end(&w);
+	ws_jw_key(&w, "conds");
+	ws_jw_arr(&w);
+	for (int i = 0; i < WS_COND_COUNT; i++) {
+		ws_jw_str(&w, ws_cond_name(i));
+	}
+	ws_jw_arr_end(&w);
+	ws_jw_key(&w, "limits");
+	ws_jw_obj(&w);
+	ws_jw_kint(&w, "screens", WS_MAX_SCREENS);
+	ws_jw_kint(&w, "items", WS_MAX_ITEMS);
+	ws_jw_kint(&w, "rotators", WS_MAX_ROTATORS);
+	ws_jw_kint(&w, "rotator_items", WS_MAX_ROT_ITEMS);
+	ws_jw_kint(&w, "rule_cmps", WS_MAX_RULE_CMPS);
+	ws_jw_kint(&w, "when_cmps", WS_MAX_WHEN_CMPS);
+	ws_jw_kint(&w, "alts", WS_MAX_ALTS);
+	ws_jw_kint(&w, "ext", WS_MAX_EXT);
+	ws_jw_kint(&w, "pictos", WS_MAX_PICTOS);
+	ws_jw_kint(&w, "file", WS_MAX_FILE);
+	ws_jw_obj_end(&w);
+	ws_jw_obj_end(&w);
+	return w.ok ? (int)w.pos : -1;
+}

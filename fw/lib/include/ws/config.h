@@ -234,6 +234,9 @@ const char *ws_op_name(int op);
 int ws_item_default_w(const struct ws_config *cfg, const struct ws_item *it);
 int ws_form_height(int form);
 
+/* Element catalogue for the editor (GET /api/catalog). */
+int ws_catalog_json(const struct ws_config *cfg, char *buf, size_t len);
+
 /* Reset hysteresis state, e.g. after the config was swapped in. */
 void ws_cfg_reset_state(struct ws_config *cfg);
 

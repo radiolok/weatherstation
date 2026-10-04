@@ -2,6 +2,7 @@
 #include <string.h>
 #include <zephyr/ztest.h>
 
+#include <ws/json.h>
 #include <ws/sign.h>
 #include <ws/vars.h>
 
@@ -175,6 +176,30 @@ ZTEST(vars, test_format)
 	x.known = false;
 	ws_value_format(&x, WS_VT_NUM, b, sizeof(b));
 	zassert_str_equal(b, "--");
+}
+
+ZTEST(vars, test_json_out_and_in)
+{
+	static char buf[8192];
+	static struct ws_jtok toks[256];
+	struct ws_now now = {100, 0};
+	struct ws_json j;
+	const char *in = "{\"out.t\": -2.5, \"out.cond\": \"rain\", \"fc.ice\": true, "
+			 "\"fc.hours\": [[1, 10], [3, 60]], \"fc.next_name\": \"ночь\", "
+			 "\"nope\": 1, \"in.co2\": null, \"fc.age\": 150}";
+
+	ws_vars_set_num(&v, WS_V_IN_CO2, 6000, 0);
+	zassert_true(ws_json_parse(&j, in, strlen(in), toks, 256) > 0);
+	zassert_equal(ws_vars_apply_json(&v, &j, 0, 100), 7);
+	zassert_equal(num(WS_V_OUT_T, 100), -25);
+	zassert_equal(num(WS_V_OUT_COND, 100), WS_COND_RAIN);
+	zassert_false(known(WS_V_IN_CO2, 100));
+	zassert_equal(num(WS_V_FC_AGE, 100), 1500);
+	zassert_true(ws_vars_to_json(&v, &now, buf, sizeof(buf)) > 0);
+	zassert_not_null(strstr(buf, "{\"name\":\"out.t\",\"value\":-2.5,\"unit\":\"°C\""));
+	zassert_not_null(strstr(buf, "\"name\":\"fc.hours\",\"value\":[[1,10],[3,60]]"));
+	zassert_not_null(strstr(buf, "\"name\":\"in.co2\",\"value\":null"));
+	zassert_not_null(strstr(buf, "\"name\":\"fc.ice\",\"value\":true"));
 }
 
 ZTEST_SUITE(vars, NULL, NULL, before, NULL, NULL);

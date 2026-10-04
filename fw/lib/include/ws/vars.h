@@ -105,6 +105,7 @@ struct ws_var_info {
 #define WS_VAR_STR_LEN 24
 #define WS_HOURS_MAX   12
 #define WS_AGE_NEVER   99999 /* fc.age / obs.age when nothing was received */
+#define WS_RX_NEVER    INT64_MIN
 
 /* Forecast older than this switches to METAR, if METAR is fresh enough. */
 #define WS_FALLBACK_FC_AGE_MIN  120
@@ -137,10 +138,10 @@ struct ws_vars {
 	struct ws_var_slot v[WS_V_COUNT];
 	struct ws_hours hours;
 	uint32_t ext_ttl[8];
-	int64_t fc_rx;  /* monotonic s of the last forecast, -1 never */
+	int64_t fc_rx;  /* monotonic s of the last forecast, WS_RX_NEVER if never */
 	int64_t fc_ts;  /* unix time inside the forecast, 0 unknown */
 	int64_t obs_ts; /* unix time of the METAR observation, 0 unknown */
-	int64_t obs_rx; /* monotonic s of the last METAR, -1 never */
+	int64_t obs_rx; /* monotonic s of the last METAR, WS_RX_NEVER if never */
 	uint32_t seq;   /* incremented on every change */
 };
 
@@ -188,6 +189,19 @@ int ws_forecast_apply(struct ws_vars *vars, const char *json, size_t len, int64_
  * path into a JSON object ("" means the payload itself is the value). */
 int ws_ext_apply(struct ws_vars *vars, int ext_idx, const char *field, const char *payload,
 		 size_t len, int64_t mono);
+
+struct ws_json;
+
+/* /api/vars: {"fallback": false, "vars": [{"name": "out.t", "value": -2,
+ * "unit": "°C", "src": "forecast", "age": 120, "type": "num"}, ...]}
+ * Values in natural units, unknown values are null. */
+int ws_vars_to_json(const struct ws_vars *vars, const struct ws_now *now, char *buf, size_t len);
+
+/* Sets variables from a JSON object {"out.t": -2, "out.cond": "rain",
+ * "fc.ice": true, "fc.hours": [[t, pop], ...], "in.co2": null} (null makes
+ * a variable unknown). Used by /api/render and the simulator. Unknown names
+ * are ignored; returns the number of variables set. */
+int ws_vars_apply_json(struct ws_vars *vars, const struct ws_json *j, int obj, int64_t mono);
 
 #ifdef __cplusplus
 }

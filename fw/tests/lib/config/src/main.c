@@ -341,6 +341,21 @@ ZTEST(config, test_errors_json)
 			  "[{\"path\":\"screens[0].items[1]\",\"msg\":\"перекрывает items[0]\"}]");
 }
 
+ZTEST(config, test_catalog)
+{
+	struct ws_json j;
+	int n = ws_catalog_json(NULL, buf, sizeof(buf));
+
+	zassert_true(n > 0);
+	zassert_true(ws_json_parse(&j, buf, n, toks, WS_JSON_TOKENS) > 0);
+	int types = ws_json_get(&j, 0, "types");
+
+	zassert_equal(j.t[types].size, WS_IT_COUNT);
+	zassert_not_null(strstr(buf, "\"type\":\"wind\",\"label\":\"Ветер\""));
+	zassert_not_null(strstr(buf, "\"vars\":[\"out.wind\",\"obs.wind\"]"));
+	zassert_not_null(strstr(buf, "\"skid\""));
+}
+
 static int read_broken(void *ctx, char *b, size_t cap)
 {
 	const char *s = "{\"schema\":1,\"screens\":[{\"id\"";
