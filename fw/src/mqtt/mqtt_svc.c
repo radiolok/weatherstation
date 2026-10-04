@@ -20,6 +20,7 @@
 #include <ws/ha.h>
 
 #include "app.h"
+#include "wdt/watchdog.h"
 #include "display/display.h"
 #include "io/io.h"
 #include "mqtt_svc.h"
@@ -475,6 +476,8 @@ static int connect_broker(void)
 	return 0;
 }
 
+static int wdt = -1;
+
 static void session(void)
 {
 	int64_t next_sensors = k_uptime_get() + 2000;
@@ -488,6 +491,7 @@ static void session(void)
 	atomic_clear(&flags);
 
 	while (connected) {
+		ws_wdt_feed(wdt);
 		struct zsock_pollfd fd = {.fd = client.transport.tcp.sock, .events = ZSOCK_POLLIN};
 		int left = mqtt_keepalive_time_left(&client);
 		int timeout = MIN(left, 500);
@@ -538,8 +542,13 @@ static void mqtt_thread(void *a, void *b, void *c)
 {
 	uint32_t backoff = 1;
 
+	/* the connect itself can take a TCP timeout: generous limit */
+	wdt = ws_wdt_add("ws_mqtt", 90000);
 	for (;;) {
-		ws_net_wait_online(K_FOREVER);
+		while (!ws_net_wait_online(K_SECONDS(10))) {
+			ws_wdt_feed(wdt);
+		}
+		ws_wdt_feed(wdt);
 		if (connect_broker() == 0) {
 			backoff = 1;
 			session();
@@ -548,6 +557,7 @@ static void mqtt_thread(void *a, void *b, void *c)
 			backoff = MIN(backoff * 2, BACKOFF_MAX_S);
 		}
 		/* a settings change wakes us up early */
+		ws_wdt_feed(wdt);
 		k_sem_take(&wake, K_SECONDS(backoff));
 	}
 }

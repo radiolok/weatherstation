@@ -790,8 +790,15 @@
     bar.hidden = false;
     const xhr = new XMLHttpRequest();
     xhr.open('POST', '/api/ota/upload');
+    // WebCrypto exists only in secure contexts (not plain HTTP on the LAN);
+    // without the hash the device relies on the MCUboot signature check.
+    if (window.crypto && crypto.subtle) {
+      const d = new Uint8Array(await crypto.subtle.digest('SHA-256', await f.arrayBuffer()));
+      xhr.setRequestHeader('X-Image-Sha256', Array.from(d, (b) => b.toString(16).padStart(2, '0')).join(''));
+    }
     xhr.upload.onprogress = (ev) => { if (ev.lengthComputable) bar.value = Math.round(ev.loaded / ev.total * 100); };
-    xhr.onload = () => msg(xhr.status === 200 ? 'Образ загружен, устройство перезагрузится' : `Обновление: ${xhr.responseText}`, xhr.status !== 200);
+    xhr.onload = () => { let r = {}; try { r = JSON.parse(xhr.responseText); } catch (x) { /* empty */ }
+      msg(xhr.status === 200 ? 'Образ загружен и проверен, устройство перезагрузится' : `Обновление: ${r.error || xhr.status}`, xhr.status !== 200); };
     xhr.onerror = () => msg('Обновление: ошибка связи', true);
     xhr.send(f);
   }

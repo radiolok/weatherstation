@@ -1,0 +1,25 @@
+# Twister entries of the application itself (the fw/lib suites live in
+# fw/tests/lib). Hardware checks H1-H19 (implementation plan) on a board:
+#   west twister -T fw -p esp32s3_devkitc/esp32s3/procpu --device-testing \
+#     --device-serial /dev/ttyUSB0 --tag hw -- --hw-operator   # with prompts
+tests:
+  ws.app.native:
+    build_only: true
+    platform_allow:
+      - native_sim/native/64
+    integration_platforms:
+      - native_sim/native/64
+  ws.app.esp32s3:
+    build_only: true
+    sysbuild: true
+    platform_allow:
+      - esp32s3_devkitc/esp32s3/procpu
+  ws.app.hw:
+    tags: hw
+    sysbuild: true
+    platform_allow:
+      - esp32s3_devkitc/esp32s3/procpu
+    harness: pytest
+    harness_config:
+      pytest_root:
+        - "tests/hw"

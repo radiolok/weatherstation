@@ -56,12 +56,13 @@ struct ws_ota {
 	char url[192];
 	char version[24];
 	uint8_t sha256[32];
-	size_t size;     /* bytes received */
-	size_t total;    /* expected size, 0 unknown */
-	int64_t since;   /* when the state was entered */
+	size_t size;   /* bytes received */
+	size_t total;  /* expected size, 0 unknown */
+	int64_t since; /* when the state was entered */
 	int64_t deadline;
-	char error[64]; /* reason of the last failure (UTF-8) */
-	bool confirmed;  /* the running image is confirmed */
+	char error[64];      /* reason of the last failure (UTF-8) */
+	bool confirmed;      /* the running image is confirmed */
+	uint32_t selftest_s; /* WS_OTA_SELFTEST_S, shorter in bench tests */
 };
 
 void ws_ota_init(struct ws_ota *o);

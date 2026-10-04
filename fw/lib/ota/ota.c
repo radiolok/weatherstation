@@ -25,6 +25,7 @@ void ws_ota_init(struct ws_ota *o)
 {
 	memset(o, 0, sizeof(*o));
 	o->confirmed = true;
+	o->selftest_s = WS_OTA_SELFTEST_S;
 }
 
 static bool busy(const struct ws_ota *o)
@@ -167,7 +168,7 @@ enum ws_ota_action ws_ota_boot(struct ws_ota *o, bool confirmed, int64_t now)
 		return WS_OTA_ACT_NONE;
 	}
 	enter(o, WS_OTA_TESTING, now);
-	o->deadline = now + WS_OTA_SELFTEST_S;
+	o->deadline = now + o->selftest_s;
 	return WS_OTA_ACT_NONE;
 }
 

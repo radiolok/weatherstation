@@ -20,6 +20,7 @@ struct api_resp {
 typedef void (*api_fn)(int method, char *body, size_t len, struct api_resp *r);
 
 void api_status(int m, char *b, size_t n, struct api_resp *r);
+void api_ota(int m, char *b, size_t n, struct api_resp *r);
 void api_screens(int m, char *b, size_t n, struct api_resp *r);
 void api_screens_validate(int m, char *b, size_t n, struct api_resp *r);
 void api_screens_rollback(int m, char *b, size_t n, struct api_resp *r);

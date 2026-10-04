@@ -14,6 +14,7 @@
 #include <ws/sensors.h>
 
 #include "app.h"
+#include "wdt/watchdog.h"
 
 LOG_MODULE_REGISTER(ws_sensors, LOG_LEVEL_INF);
 
@@ -92,8 +93,12 @@ static void sensors_thread(void *a, void *b, void *c)
 	struct ws_settings s;
 
 	ws_ptrend_init(&trend);
+	int wdt = ws_wdt_add("ws_sensors", PERIOD_S * 4 * 1000);
+
 	for (;;) {
 		int64_t mono = ws_app_now().mono;
+
+		ws_wdt_feed(wdt);
 
 		ws_app_settings_get(&s);
 		read_thp(&s, mono);

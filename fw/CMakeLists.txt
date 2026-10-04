@@ -40,6 +40,8 @@ if(CONFIG_WS_NET AND CONFIG_HTTP_CLIENT)
 endif()
 
 target_sources_ifdef(CONFIG_WS_MQTT app PRIVATE src/mqtt/mqtt_svc.c)
+target_sources_ifdef(CONFIG_WS_OTA app PRIVATE src/ota/ota.c)
+target_sources_ifdef(CONFIG_WS_WATCHDOG app PRIVATE src/wdt/watchdog.c)
 
 # METAR fallback: C++ adapter of au/metar_cpp + HTTPS fetch + root CAs
 if(CONFIG_WS_METAR)

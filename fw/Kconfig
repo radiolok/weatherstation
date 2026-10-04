@@ -57,7 +57,23 @@ config WS_METAR_STACK_SIZE
 config WS_OTA
 	bool "Firmware update over the network"
 	default y
-	depends on NETWORKING
+	depends on NETWORKING && HTTP_CLIENT && MCUBOOT_IMG_MANAGER && IMG_MANAGER
+
+config WS_OTA_STACK_SIZE
+	int "OTA work queue stack"
+	default 8192
+	depends on WS_OTA
+	help
+	  The download may use TLS (https:// URL).
+
+config WS_SMP
+	bool "MCUmgr (SMP) over UDP for development"
+	depends on MCUMGR_TRANSPORT_UDP && WS_NET
+	default y
+	help
+	  Opens the SMP UDP port once the network is up. No authentication:
+	  only in development builds (overlay-smp.conf); MCUboot still
+	  rejects images without the right signature.
 
 config WS_WATCHDOG
 	bool "Task watchdog on every service thread"

@@ -12,6 +12,7 @@
 #include <ws/netfsm.h>
 
 #include "app.h"
+#include "wdt/watchdog.h"
 #include "io/io.h"
 #include "net_mgr.h"
 
@@ -167,8 +168,12 @@ static void net_thread(void *a, void *b, void *c)
 
 	ws_wifi_init(on_wifi);
 	run(ws_netfsm_boot(&fsm, has_config(), ap_at_boot_flag, ws_app_now().mono));
+	int wdt = ws_wdt_add("ws_net", 30000);
+
 	for (;;) {
 		int64_t now;
+
+		ws_wdt_feed(wdt);
 
 		if (k_msgq_get(&net_q, &ev, K_SECONDS(1)) == 0) {
 			now = ws_app_now().mono;

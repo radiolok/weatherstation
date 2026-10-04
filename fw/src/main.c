@@ -35,6 +35,7 @@ int main(void)
 	ws_app_state_init();
 	LOG_INF("device id %s", ws_app_device_id());
 	ws_app_clock_start();
+	ws_watchdog_start();
 
 	ws_io_start();
 	ws_display_start();
@@ -43,6 +44,5 @@ int main(void)
 	ws_mqtt_start();
 	ws_web_start();
 	ws_metar_start();
-	ws_watchdog_start();
 	return 0;
 }

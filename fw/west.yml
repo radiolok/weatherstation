@@ -18,3 +18,4 @@ manifest:
           - mbedtls
           - mcuboot
           - littlefs
+          - zcbor          # MCUmgr (overlay-smp.conf)

@@ -14,6 +14,7 @@
 #include <ws/util.h>
 
 #include "app.h"
+#include "ota/ota.h"
 #include "web.h"
 #ifdef CONFIG_WS_NET
 #include "net/net_mgr.h"
@@ -243,6 +244,100 @@ API(pin, "/api/display/pin", POST, api_pin, false);
 API(settings, "/api/settings", GET | POST, api_settings, true);
 API(scan, "/api/wifi/scan", GET, api_wifi_scan, false);
 API(lamp, "/api/lamp", POST, api_lamp, false);
+
+#ifdef CONFIG_WS_OTA
+/* ---- firmware upload: streamed into slot 1, never buffered ---- */
+
+HTTP_SERVER_REGISTER_HEADER_CAPTURE(ws_hdr_sha, "X-Image-Sha256");
+
+static struct {
+	bool active;
+	bool failed;
+	enum http_status status;
+} up;
+
+static const char *header(const struct http_request_ctx *req, const char *name)
+{
+	for (size_t i = 0; i < req->header_count; i++) {
+		if (!strcasecmp(req->headers[i].name, name)) {
+			return req->headers[i].value;
+		}
+	}
+	return NULL;
+}
+
+static void upload_start(struct http_client_ctx *client, const struct http_request_ctx *req)
+{
+	uint8_t sha[32];
+	const char *hex = header(req, "X-Image-Sha256");
+
+	if (!authorized(req)) {
+		up.failed = true;
+		up.status = HTTP_401_UNAUTHORIZED;
+		return;
+	}
+	if (hex && ws_unhex(hex, sha, sizeof(sha))) {
+		up.failed = true;
+		up.status = HTTP_400_BAD_REQUEST;
+		return;
+	}
+	int ret = ws_ota_web_begin(client->content_len, hex ? sha : NULL);
+
+	if (ret) {
+		up.failed = true;
+		up.status = ret == -EBUSY ? HTTP_409_CONFLICT : HTTP_400_BAD_REQUEST;
+		return;
+	}
+	up.active = true;
+}
+
+static int ota_upload_cb(struct http_client_ctx *client, enum http_data_status status,
+			 const struct http_request_ctx *req, struct http_response_ctx *resp,
+			 void *user_data)
+{
+	if (status == HTTP_SERVER_DATA_ABORTED) {
+		if (up.active) {
+			ws_ota_web_finish(-ECONNABORTED);
+		}
+		memset(&up, 0, sizeof(up));
+		return 0;
+	}
+	if (!up.active && !up.failed) {
+		upload_start(client, req);
+	}
+	if (up.active && req->data_len && ws_ota_web_chunk(req->data, req->data_len)) {
+		up.active = false;
+		up.failed = true;
+		up.status = HTTP_500_INTERNAL_SERVER_ERROR;
+	}
+	if (status != HTTP_SERVER_DATA_FINAL) {
+		return 0;
+	}
+	enum http_status st = up.failed ? up.status : HTTP_200_OK;
+
+	if (up.active && ws_ota_web_finish(0)) {
+		st = HTTP_422_UNPROCESSABLE_ENTITY;
+	}
+	int n = ws_ota_status_json(resp_buf, sizeof(resp_buf));
+
+	memset(&up, 0, sizeof(up));
+	resp->status = st;
+	resp->headers = st == HTTP_401_UNAUTHORIZED ? auth_headers : json_headers;
+	resp->header_count = 2;
+	resp->body = (const uint8_t *)resp_buf;
+	resp->body_len = n > 0 ? n : 0;
+	resp->final_chunk = true;
+	return 0;
+}
+
+static struct http_resource_detail_dynamic ota_upload_detail = {
+	.common = {.type = HTTP_RESOURCE_TYPE_DYNAMIC,
+		   .bitmask_of_supported_http_methods = BIT(HTTP_POST)},
+	.cb = ota_upload_cb,
+};
+HTTP_RESOURCE_DEFINE(ota_upload_res, ws_http, "/api/ota/upload", &ota_upload_detail);
+API(ota, "/api/ota", GET | POST, api_ota, false);
+#endif
 
 int ws_web_start(void)
 {

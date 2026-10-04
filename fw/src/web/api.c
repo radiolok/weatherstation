@@ -1,4 +1,5 @@
 /* REST handlers (spec section 10). All bodies and answers are JSON. */
+#include <errno.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -468,3 +469,21 @@ void api_lamp(int m, char *b, size_t n, struct api_resp *r)
 	zbus_chan_pub(&ws_chan_lamp_cmd, &msg, K_MSEC(100));
 	ok_resp(r);
 }
+
+#ifdef CONFIG_WS_OTA
+/* GET: update state; POST {"url", "sha256", "version"}: download like the
+ * MQTT command */
+void api_ota(int m, char *b, size_t n, struct api_resp *r)
+{
+	if (m == HTTP_POST) {
+		int ret = ws_ota_request_json(b, n);
+
+		if (ret) {
+			r->status = ret == -EBUSY ? HTTP_409_CONFLICT : HTTP_400_BAD_REQUEST;
+		}
+	}
+	int len = ws_ota_status_json(r->buf, r->cap);
+
+	r->len = len > 0 ? len : 0;
+}
+#endif

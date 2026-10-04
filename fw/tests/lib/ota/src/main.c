@@ -37,7 +37,8 @@ ZTEST(ota, test_request_checks)
 	zassert_equal(o.state, WS_OTA_FAILED);
 	req("{\"url\":\"http://x/y\",\"sha256\":\"abc\"}", WS_OTA_ACT_NONE);
 	zassert_true(strstr(o.error, "sha256") != NULL);
-	req("{\"url\":\"http://x/y\",\"sha256\":\"zz86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08\"}",
+	req("{\"url\":\"http://x/"
+	    "y\",\"sha256\":\"zz86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08\"}",
 	    WS_OTA_ACT_NONE);
 	req("not json", WS_OTA_ACT_NONE);
 	/* after a failure a new request is accepted */
