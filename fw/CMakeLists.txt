@@ -16,4 +16,24 @@ ws_lib_add(app)
 target_include_directories(app PRIVATE src)
 target_sources(app PRIVATE
   src/main.c
+  src/app_state.c
+  src/shell_ws.c
+  src/storage/storage.c
+  src/storage/settings_ws.c
+  src/display/display.c
+  src/display/shell_sign.c
+  src/io/io.c
+  src/sensors/sensors.c
 )
+
+# Emulators behind the same aliases on native_sim (BME280 on i2c-emul,
+# MH-Z19B on uart-emul, sign sniffer, button through gpio-emul)
+if(CONFIG_WS_EMUL)
+  target_include_directories(app PRIVATE emul)
+  target_sources(app PRIVATE
+    emul/bme280_emul.c
+    emul/mhz19b_emul.c
+    emul/sign_sniffer.c
+    emul/shell_emul.c
+  )
+endif()
