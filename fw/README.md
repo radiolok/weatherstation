@@ -2,7 +2,7 @@
 
 Прошивка для ESP32-S3 на Zephyr. Board target — `esp32s3_devkitc/esp32s3/procpu`, распиновка задаётся в overlay (см. [`hw/`](../hw/)). Загрузчик MCUboot, сборка через sysbuild.
 
-Код пока не написан. Здесь описана архитектура, по которой он будет строиться. Подробное ТЗ на конструктор экранов лежит в [`docs/screen-constructor.md`](../docs/screen-constructor.md).
+Код пока не написан. Здесь описана архитектура, по которой он будет строиться, а порядок работ и проверки на железе — в [`docs/implementation-plan.md`](docs/implementation-plan.md). Подробное ТЗ на конструктор экранов лежит в [`docs/screen-constructor.md`](../docs/screen-constructor.md).
 
 ## Блоки
 
