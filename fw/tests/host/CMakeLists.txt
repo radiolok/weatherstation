@@ -13,7 +13,7 @@ include(${WS_FW_DIR}/lib/lib.cmake)
 option(WS_SANITIZE "Build with ASan/UBSan" ON)
 option(WS_COVERAGE "Build with gcov coverage" OFF)
 
-add_compile_options(-Wall -Wextra -Werror -Wno-unused-parameter -g -O1 -DWS_HOST_TEST=1)
+add_compile_options(-Wall -Wextra -Werror -Wno-unused-parameter -Wno-format-truncation -g -O1 -DWS_HOST_TEST=1)
 if(WS_SANITIZE)
   add_compile_options(-fsanitize=address,undefined -fno-omit-frame-pointer)
   add_link_options(-fsanitize=address,undefined)
