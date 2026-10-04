@@ -1,0 +1,3 @@
+[submodule "au/metar_cpp"]
+	path = au/metar_cpp
+	url = https://github.com/radiolok/metar_cpp

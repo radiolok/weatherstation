@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 366" width="760" height="366" role="img" aria-label="Кадр проходит четыре ступени, JSON разбирается только при сохранении" font-family="'Segoe UI', 'Helvetica Neue', Arial, 'Liberation Sans', sans-serif">
+<defs>
+<marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#1c2019"/></marker>
+<marker id="s" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#1f5bb8"/></marker>
+</defs>
+<rect width="760" height="366" fill="#ffffff"/>
+<text x="24" y="30" font-size="15" font-weight="600" fill="#1c2019">Кадр проходит четыре ступени, JSON разбирается только при сохранении</text>
+<text x="89" y="84" text-anchor="middle" font-size="11.5" font-weight="400" fill="#5b6454">источники</text>
+<path d="M154 111H169M154 149H169M154 187H169M154 225H169M169 111V225" fill="none" stroke="#1c2019" stroke-width="1.4"/>
+<path d="M169 168H182" fill="none" stroke="#1c2019" stroke-width="1.4" marker-end="url(#a)"/>
+<path d="M304 168H324" fill="none" stroke="#1c2019" stroke-width="1.4" marker-end="url(#a)"/>
+<path d="M446 168H466" fill="none" stroke="#1c2019" stroke-width="1.4" marker-end="url(#a)"/>
+<path d="M588 168H608" fill="none" stroke="#1c2019" stroke-width="1.4" marker-end="url(#a)"/>
+<path d="M154 306H182" fill="none" stroke="#1c2019" stroke-width="1.4" marker-end="url(#a)"/>
+<path d="M304 306H324" fill="none" stroke="#1c2019" stroke-width="1.4" marker-end="url(#a)"/>
+<path d="M386 270V206" fill="none" stroke="#1c2019" stroke-width="1.4" marker-end="url(#a)"/>
+<path d="M446 306H528V206" fill="none" stroke="#1c2019" stroke-width="1.4" marker-end="url(#a)"/>
+<path d="M670 204V268" fill="none" stroke="#1c2019" stroke-width="1.4" marker-end="url(#a)"/>
+<rect x="24" y="96" width="130" height="30" rx="7" fill="#fafbf7" stroke="#1c2019" stroke-width="1.2"/>
+<text x="89" y="115" text-anchor="middle" font-size="13" font-weight="400" fill="#1c2019">Датчики</text>
+<rect x="24" y="134" width="130" height="30" rx="7" fill="#fafbf7" stroke="#1c2019" stroke-width="1.2"/>
+<text x="89" y="153" text-anchor="middle" font-size="13" font-weight="400" fill="#1c2019">Прогноз, MQTT</text>
+<rect x="24" y="172" width="130" height="30" rx="7" fill="#fafbf7" stroke="#1c2019" stroke-width="1.2"/>
+<text x="89" y="191" text-anchor="middle" font-size="13" font-weight="400" fill="#1c2019">Часы, SNTP</text>
+<rect x="24" y="210" width="130" height="30" rx="7" fill="#fafbf7" stroke="#1c2019" stroke-width="1.2"/>
+<text x="89" y="229" text-anchor="middle" font-size="13" font-weight="400" fill="#1c2019">Внешние топики</text>
+<rect x="184" y="132" width="120" height="72" rx="7" fill="#fafbf7" stroke="#1c2019" stroke-width="1.2"/>
+<text x="244.0" y="156" text-anchor="middle" font-size="13.5" font-weight="600" fill="#1c2019">Переменные</text>
+<text x="244.0" y="173" text-anchor="middle" font-size="11.5" fill="#5b6454">индексы,</text>
+<text x="244.0" y="189" text-anchor="middle" font-size="11.5" fill="#5b6454">возраст, TTL</text>
+<rect x="326" y="132" width="120" height="72" rx="7" fill="#f6e9a8" stroke="#8a6a00" stroke-width="1.8"/>
+<text x="386.0" y="156" text-anchor="middle" font-size="13.5" font-weight="600" fill="#1c2019">Выбор экрана</text>
+<text x="386.0" y="173" text-anchor="middle" font-size="11.5" fill="#5b6454">правила,</text>
+<text x="386.0" y="189" text-anchor="middle" font-size="11.5" fill="#5b6454">раз в 10 с</text>
+<rect x="468" y="132" width="120" height="72" rx="7" fill="#fafbf7" stroke="#1c2019" stroke-width="1.2"/>
+<text x="528.0" y="156" text-anchor="middle" font-size="13.5" font-weight="600" fill="#1c2019">Рендер</text>
+<text x="528.0" y="173" text-anchor="middle" font-size="11.5" fill="#5b6454">кадр 102×11,</text>
+<text x="528.0" y="189" text-anchor="middle" font-size="11.5" fill="#5b6454">зоны по часам</text>
+<rect x="610" y="132" width="120" height="72" rx="7" fill="#fafbf7" stroke="#1c2019" stroke-width="1.2"/>
+<text x="670.0" y="156" text-anchor="middle" font-size="13.5" font-weight="600" fill="#1c2019">Отправка</text>
+<text x="670.0" y="173" text-anchor="middle" font-size="11.5" fill="#5b6454">сравнение,</text>
+<text x="670.0" y="189" text-anchor="middle" font-size="11.5" fill="#5b6454">Mobitec → UART</text>
+<rect x="24" y="270" width="130" height="72" rx="7" fill="#fafbf7" stroke="#1c2019" stroke-width="1.2"/>
+<text x="89.0" y="294" text-anchor="middle" font-size="13.5" font-weight="600" fill="#1c2019">Веб-редактор</text>
+<text x="89.0" y="311" text-anchor="middle" font-size="11.5" fill="#5b6454">PUT /api/screens</text>
+<rect x="184" y="270" width="120" height="72" rx="7" fill="#fafbf7" stroke="#1c2019" stroke-width="1.2"/>
+<text x="244.0" y="294" text-anchor="middle" font-size="13.5" font-weight="600" fill="#1c2019">screens.json</text>
+<text x="244.0" y="311" text-anchor="middle" font-size="11.5" fill="#5b6454">LittleFS,</text>
+<text x="244.0" y="327" text-anchor="middle" font-size="11.5" fill="#5b6454">есть откат</text>
+<rect x="326" y="270" width="120" height="72" rx="7" fill="#fafbf7" stroke="#1c2019" stroke-width="1.2"/>
+<text x="386.0" y="294" text-anchor="middle" font-size="13.5" font-weight="600" fill="#1c2019">Компилятор</text>
+<text x="386.0" y="311" text-anchor="middle" font-size="11.5" fill="#5b6454">при старте и</text>
+<text x="386.0" y="327" text-anchor="middle" font-size="11.5" fill="#5b6454">сохранении</text>
+<rect x="610" y="270" width="120" height="72" rx="7" fill="#fafbf7" stroke="#1c2019" stroke-width="1.2"/>
+<text x="670.0" y="294" text-anchor="middle" font-size="13.5" font-weight="600" fill="#1c2019">Табло</text>
+<text x="670.0" y="311" text-anchor="middle" font-size="11.5" fill="#5b6454">RS-485,</text>
+<text x="670.0" y="327" text-anchor="middle" font-size="11.5" fill="#5b6454">4800 бод</text>
+<text x="315" y="124" text-anchor="middle" font-size="11.5" font-weight="400" fill="#5b6454">изменились</text>
+<text x="457" y="124" text-anchor="middle" font-size="11.5" font-weight="400" fill="#5b6454">экран</text>
+<text x="599" y="124" text-anchor="middle" font-size="11.5" font-weight="400" fill="#5b6454">кадр</text>
+<text x="394" y="242" text-anchor="start" font-size="11.5" font-weight="400" fill="#5b6454">структуры</text>
+<text x="678" y="240" text-anchor="start" font-size="11.5" font-weight="400" fill="#5b6454">≈ 330 байт</text>
+</svg>

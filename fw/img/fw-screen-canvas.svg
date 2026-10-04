@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 200" width="760" height="200" role="img" aria-label="Центр экрана постоянный, зоны по краям сменяются по очереди" font-family="'Segoe UI', 'Helvetica Neue', Arial, 'Liberation Sans', sans-serif">
+<defs>
+<marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#1c2019"/></marker>
+<marker id="s" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#1f5bb8"/></marker>
+</defs>
+<rect width="760" height="200" fill="#ffffff"/>
+<text x="24" y="30" font-size="15" font-weight="600" fill="#1c2019">Центр экрана постоянный, зоны по краям сменяются по очереди</text>
+<rect x="40" y="52" width="679.0" height="87.5" rx="8" fill="#eceee6" stroke="#9aa38e"/>
+<rect x="48.0" y="60" width="195.0" height="71.5" rx="4" fill="#dbe6f6" stroke="#1f5bb8" stroke-width="2"/>
+<text x="145.5" y="99.75" text-anchor="middle" font-size="13" font-weight="600" fill="#1c2019">зона ротации</text>
+<text x="145.5" y="162" text-anchor="middle" font-size="11.5" font-weight="400" fill="#5b6454">x 0–29 · смена в :00</text>
+<text x="145.5" y="178" text-anchor="middle" font-size="11.5" font-weight="400" fill="#5b6454">ветер ↔ влажность</text>
+<rect x="262.5" y="60" width="71.5" height="71.5" rx="4" fill="#fafbf7" stroke="#9aa38e" stroke-width="1.25"/>
+<text x="298.25" y="99.75" text-anchor="middle" font-size="13" font-weight="400" fill="#1c2019">иконка</text>
+<text x="298.25" y="162" text-anchor="middle" font-size="11.5" font-weight="400" fill="#5b6454">x 33–43</text>
+<text x="298.25" y="178" text-anchor="middle" font-size="11.5" font-weight="400" fill="#5b6454">форма L</text>
+<rect x="353.5" y="60" width="156.0" height="71.5" rx="4" fill="#fafbf7" stroke="#9aa38e" stroke-width="1.25"/>
+<text x="431.5" y="99.75" text-anchor="middle" font-size="13" font-weight="400" fill="#1c2019">температура</text>
+<text x="431.5" y="162" text-anchor="middle" font-size="11.5" font-weight="400" fill="#5b6454">x 47–70, форма L</text>
+<text x="431.5" y="178" text-anchor="middle" font-size="11.5" font-weight="400" fill="#5b6454">рамка под «−35°»</text>
+<rect x="516.0" y="60" width="195.0" height="71.5" rx="4" fill="#dbe6f6" stroke="#1f5bb8" stroke-width="2"/>
+<text x="613.5" y="99.75" text-anchor="middle" font-size="13" font-weight="600" fill="#1c2019">зона ротации</text>
+<text x="613.5" y="162" text-anchor="middle" font-size="11.5" font-weight="400" fill="#5b6454">x 72–101 · смена в :30</text>
+<text x="613.5" y="178" text-anchor="middle" font-size="11.5" font-weight="400" fill="#5b6454">макс/мин ↔ давление</text>
+</svg>
