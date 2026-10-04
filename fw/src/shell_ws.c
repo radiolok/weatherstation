@@ -2,6 +2,7 @@
  * "ws" shell commands for the bench and for the native_sim tests:
  * variables, time, screen configuration and settings.
  */
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 

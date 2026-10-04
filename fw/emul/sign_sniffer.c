@@ -17,7 +17,7 @@ static uint8_t buf[WS_MOBITEC_MAX + 8];
 static size_t n;
 static struct ws_frame frame;
 static struct ws_emul_sign_stats stats;
-K_SPINLOCK_DEFINE(sniff_lock);
+static struct k_spinlock sniff_lock;
 
 static void on_tx(const struct device *dev, size_t size, void *user_data)
 {

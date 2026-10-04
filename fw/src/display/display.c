@@ -4,6 +4,7 @@
  * goes to the sign at once and an unchanged one is repeated every 30 s so
  * the sign recovers after a power loss.
  */
+#include <stdio.h>
 #include <string.h>
 
 #include <zephyr/device.h>
