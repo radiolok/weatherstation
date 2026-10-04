@@ -4,7 +4,7 @@
 source "$(dirname "$0")/common.sh"
 need node
 cd "$WS_ROOT"
-node --test fw/web/test/
+node --test fw/web/test/*.test.js
 "$WS_FW/scripts/build-native.sh"
 mkdir -p "$WS_BUILD/web"
 python3 -m pytest fw/tests/web -v \

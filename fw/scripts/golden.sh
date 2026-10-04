@@ -6,6 +6,7 @@ need node
 cd "$WS_ROOT"
 node tools/glyphgen/glyphgen.js
 node tools/glyphgen/golden.js
+node fw/web/tools/golden-screens.js
 # Fails if the committed references differ from what core.js draws now.
 git diff --exit-code -- fw/lib/sign/glyphs_gen.h fw/web/src/glyphs.json fw/tests/golden
 west twister -p "$NATIVE_BOARD" -T fw/tests/lib --tag golden \

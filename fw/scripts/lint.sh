@@ -23,5 +23,6 @@ flag=--check
 ((fix)) && flag=
 node tools/glyphgen/glyphgen.js $flag
 node tools/glyphgen/golden.js $flag
+node fw/web/tools/golden-screens.js $flag
 python3 tools/glyphgen/futaba_vectors.py $flag
 echo "lint: OK"
