@@ -3,6 +3,7 @@
  * over 3 h is computed in fw/lib/sensors.
  */
 #include <stdlib.h>
+#include <string.h>
 
 #include <zephyr/device.h>
 #include <zephyr/drivers/sensor.h>
@@ -25,6 +26,7 @@ static struct ws_ptrend trend;
 static uint32_t thp_errors, co2_errors, reads;
 static int32_t last_t, last_rh, last_p, last_co2;
 static bool thp_ok, co2_ok;
+static K_SEM_DEFINE(read_now, 0, 1);
 
 static int32_t to_deci(const struct sensor_value *v)
 {
@@ -98,7 +100,7 @@ static void sensors_thread(void *a, void *b, void *c)
 		read_co2(mono);
 		reads++;
 		ws_app_vars_touched();
-		k_sleep(K_SECONDS(PERIOD_S));
+		k_sem_take(&read_now, K_SECONDS(PERIOD_S));
 	}
 }
 
@@ -119,6 +121,15 @@ static int cmd_sensors(const struct shell *sh, size_t argc, char **argv)
 {
 	int32_t d;
 
+	if (argc > 1 && !strcmp(argv[1], "read")) {
+		uint32_t before = reads;
+
+		k_sem_give(&read_now);
+		for (int i = 0; i < 50 && reads == before; i++) {
+			k_msleep(20);
+		}
+	}
+
 	print_deci(sh, "t", thp_ok, last_t, "C");
 	print_deci(sh, "rh", thp_ok, last_rh, "%");
 	print_deci(sh, "p", thp_ok, last_p, "mmHg");
@@ -138,4 +149,5 @@ static int cmd_sensors(const struct shell *sh, size_t argc, char **argv)
 	return 0;
 }
 
-SHELL_SUBCMD_ADD((ws), sensors, NULL, "Last sensor readings", cmd_sensors, 1, 0);
+SHELL_SUBCMD_ADD((ws), sensors, NULL, "Last readings; 'ws sensors read' reads now", cmd_sensors, 1,
+		 1);

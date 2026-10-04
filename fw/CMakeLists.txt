@@ -35,6 +35,8 @@ if(CONFIG_WS_NET)
   endif()
 endif()
 
+target_sources_ifdef(CONFIG_WS_MQTT app PRIVATE src/mqtt/mqtt_svc.c)
+
 # Emulators behind the same aliases on native_sim (BME280 on i2c-emul,
 # MH-Z19B on uart-emul, sign sniffer, button through gpio-emul)
 if(CONFIG_WS_EMUL)
