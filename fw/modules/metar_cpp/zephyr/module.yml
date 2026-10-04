@@ -1,0 +1,5 @@
+# Zephyr module wrapper for the au/metar_cpp submodule.
+name: metar_cpp
+build:
+  cmake: .
+  kconfig: Kconfig

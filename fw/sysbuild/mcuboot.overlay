@@ -1,0 +1,2 @@
+/* MCUboot must use the same flash layout as the application. */
+#include "../boards/esp32s3_ws_partitions.dtsi"

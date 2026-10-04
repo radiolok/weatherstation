@@ -1,0 +1,206 @@
+# Firmware CI: everything that can be checked without hardware.
+# Every job calls the same scripts as a local run (fw/scripts/*).
+name: fw
+
+on:
+  push:
+    paths: ["fw/**", "tools/**", "au/**", ".github/workflows/fw.yml"]
+  pull_request:
+    paths: ["fw/**", "tools/**", "au/**", ".github/workflows/fw.yml"]
+  workflow_dispatch:
+
+concurrency:
+  group: fw-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # West workspace = $GITHUB_WORKSPACE, the repository is checked out into it.
+  WS_REPO: weatherstation
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: ${{ env.WS_REPO }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: sudo apt-get install -y clang-format python3-pil
+      - name: clang-format, generated glyphs and golden frames
+        working-directory: ${{ env.WS_REPO }}
+        run: fw/scripts/lint.sh
+
+  host:
+    # fw/lib on the host with ASan/UBSan: seconds, catches memory bugs early
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: ${{ env.WS_REPO }}
+      - run: sudo apt-get install -y ninja-build gcovr
+      - working-directory: ${{ env.WS_REPO }}
+        run: fw/scripts/host-tests.sh
+
+  unit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: ${{ env.WS_REPO }}
+          submodules: recursive
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: zephyrproject-rtos/action-zephyr-setup@v1
+        with:
+          app-path: ${{ env.WS_REPO }}
+          manifest-file-name: fw/west.yml
+          toolchains: xtensa-espressif_esp32s3_zephyr-elf
+      - run: pip install gcovr
+      - name: ztest on native_sim (twister, gcov)
+        working-directory: ${{ env.WS_REPO }}
+        run: fw/scripts/unit.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unit-report
+          path: |
+            ${{ env.WS_REPO }}/build/twister-unit/twister.json
+            ${{ env.WS_REPO }}/build/twister-unit/coverage/
+          if-no-files-found: ignore
+
+  golden:
+    # Regenerates the reference frames from core.js and the web renderer,
+    # then compares them with the C renderer bit for bit.
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: ${{ env.WS_REPO }}
+          submodules: recursive
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: zephyrproject-rtos/action-zephyr-setup@v1
+        with:
+          app-path: ${{ env.WS_REPO }}
+          manifest-file-name: fw/west.yml
+          toolchains: xtensa-espressif_esp32s3_zephyr-elf
+      - working-directory: ${{ env.WS_REPO }}
+        run: fw/scripts/golden.sh
+
+  integration:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: ${{ env.WS_REPO }}
+          submodules: recursive
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: zephyrproject-rtos/action-zephyr-setup@v1
+        with:
+          app-path: ${{ env.WS_REPO }}
+          manifest-file-name: fw/west.yml
+          toolchains: xtensa-espressif_esp32s3_zephyr-elf
+      - name: Mosquitto broker
+        # A plain service container cannot take a config file, and
+        # mosquitto 2.x only listens on localhost without one.
+        working-directory: ${{ env.WS_REPO }}
+        run: |
+          docker run -d --name mosquitto -p 1883:1883 \
+            -v "$PWD/fw/tests/integration/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro" \
+            eclipse-mosquitto:2
+      - run: pip install -r ${{ env.WS_REPO }}/fw/tests/integration/requirements.txt
+      - name: native_sim + pytest (MQTT, HTTP API, METAR over HTTPS, NTP)
+        working-directory: ${{ env.WS_REPO }}
+        run: fw/scripts/integration.sh
+      - name: Broker log
+        if: failure()
+        run: docker logs mosquitto
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-logs
+          path: ${{ env.WS_REPO }}/build/integration/
+          if-no-files-found: ignore
+
+  web:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: ${{ env.WS_REPO }}
+          submodules: recursive
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: zephyrproject-rtos/action-zephyr-setup@v1
+        with:
+          app-path: ${{ env.WS_REPO }}
+          manifest-file-name: fw/west.yml
+          toolchains: xtensa-espressif_esp32s3_zephyr-elf
+      - run: |
+          pip install -r ${{ env.WS_REPO }}/fw/tests/integration/requirements.txt
+          python -m playwright install --with-deps chromium
+      - name: Node tests of the web renderer, Playwright against native_sim
+        working-directory: ${{ env.WS_REPO }}
+        run: fw/scripts/web.sh
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: web-traces
+          path: ${{ env.WS_REPO }}/build/web/
+          if-no-files-found: ignore
+
+  target:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: ${{ env.WS_REPO }}
+          submodules: recursive
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: zephyrproject-rtos/action-zephyr-setup@v1
+        with:
+          app-path: ${{ env.WS_REPO }}
+          manifest-file-name: fw/west.yml
+          toolchains: xtensa-espressif_esp32s3_zephyr-elf
+      - name: Espressif binary blobs (Wi-Fi, PHY)
+        run: west blobs fetch hal_espressif
+      - name: ESP32-S3 + MCUboot (sysbuild), signed image
+        working-directory: ${{ env.WS_REPO }}
+        run: fw/scripts/build-target.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: firmware-esp32s3
+          path: ${{ env.WS_REPO }}/build/artifacts/
+
+  size:
+    needs: target
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: ${{ env.WS_REPO }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: firmware-esp32s3
+          path: artifacts
+      - run: pip install pyelftools
+      - name: Compare with fw/size-budget.json (warning only)
+        run: |
+          python3 ${{ env.WS_REPO }}/fw/scripts/size.py --elf artifacts/weatherstation.elf \
+            --budget ${{ env.WS_REPO }}/fw/size-budget.json | tee -a "$GITHUB_STEP_SUMMARY"

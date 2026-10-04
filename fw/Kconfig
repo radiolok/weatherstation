@@ -1,0 +1,17 @@
+# Weatherstation application options.
+
+mainmenu "Weatherstation"
+
+menu "Weatherstation"
+
+config WS_VERSION
+	string "Firmware version string"
+	default "0.1.0-dev"
+
+config WS_DEVICE_PREFIX
+	string "Prefix of the device id (MQTT topics, AP SSID)"
+	default "ws"
+
+endmenu
+
+source "Kconfig.zephyr"

@@ -1,0 +1,170 @@
+"""pytest harness for the native_sim application (fw/tests/integration, fw/tests/web).
+
+The firmware runs as a host process (zephyr.exe) with its console on
+stdin/stdout (CONFIG_UART_NATIVE_PTY_0_ON_STDINOUT). Tests talk to it through
+the Zephyr shell, the same commands a person uses on the bench, and through
+the network: native_sim uses host sockets (NSOS), so the HTTP server listens
+on a host port and MQTT connects to a broker on the host.
+"""
+import os
+import queue
+import re
+import subprocess
+import threading
+import time
+from pathlib import Path
+
+import pytest
+
+PROMPT = "uart:~$ "
+ANSI = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
+
+
+def pytest_addoption(parser):
+    parser.addoption("--zephyr-exe", default=os.environ.get("ZEPHYR_EXE", "build/native/zephyr/zephyr.exe"))
+    parser.addoption("--log-dir", default=os.environ.get("WS_LOG_DIR", "build/pytest"))
+    parser.addoption("--mqtt-host", default=os.environ.get("MQTT_HOST", "127.0.0.1"))
+    parser.addoption("--mqtt-port", type=int, default=int(os.environ.get("MQTT_PORT", "1883")))
+    parser.addoption("--http-port", type=int, default=int(os.environ.get("WS_HTTP_PORT", "8080")))
+
+
+class Dut:
+    """A running zephyr.exe with line-oriented console access."""
+
+    def __init__(self, exe, workdir, log_path, args=()):
+        self.exe = str(exe)
+        self.workdir = Path(workdir)
+        self.log_path = Path(log_path)
+        self.args = list(args)
+        self.proc = None
+        self.lines = queue.Queue()
+        self.history = []
+        self._reader = None
+        self._log = None
+
+    # -- process --------------------------------------------------------
+    def start(self, extra_args=()):
+        self.workdir.mkdir(parents=True, exist_ok=True)
+        self.log_path.parent.mkdir(parents=True, exist_ok=True)
+        self._log = open(self.log_path, "a", encoding="utf-8", errors="replace")
+        cmd = [self.exe, f"--flash={self.workdir / 'flash.bin'}", *self.args, *extra_args]
+        self._log.write(f"\n### start {' '.join(cmd)}\n")
+        self.proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                     stderr=subprocess.STDOUT, cwd=self.workdir, bufsize=0)
+        self._reader = threading.Thread(target=self._read, daemon=True)
+        self._reader.start()
+        return self
+
+    def _read(self):
+        buf = b""
+        while True:
+            chunk = self.proc.stdout.read(1)
+            if not chunk:
+                break
+            buf += chunk
+            if chunk == b"\n" or buf.endswith(PROMPT.encode()):
+                line = ANSI.sub("", buf.decode("utf-8", errors="replace")).rstrip("\r\n")
+                buf = b""
+                self._log.write(line + "\n")
+                self._log.flush()
+                self.history.append(line)
+                self.lines.put(line)
+        self.lines.put(None)
+
+    def kill(self, sig=None):
+        """Hard stop, like pulling the plug (no clean MQTT disconnect)."""
+        if self.proc and self.proc.poll() is None:
+            self.proc.kill()
+            self.proc.wait(5)
+
+    def stop(self):
+        self.kill()
+        if self._log:
+            self._log.close()
+            self._log = None
+
+    def restart(self, extra_args=()):
+        self.stop()
+        self.lines = queue.Queue()
+        return self.start(extra_args)
+
+    # -- console --------------------------------------------------------
+    def wait_for(self, pattern, timeout=10.0):
+        """Waits for a console line matching `pattern`, returns the match."""
+        rx = re.compile(pattern)
+        deadline = time.monotonic() + timeout
+        while True:
+            left = deadline - time.monotonic()
+            if left <= 0:
+                raise TimeoutError(f"no line matching {pattern!r} in {timeout} s")
+            try:
+                line = self.lines.get(timeout=left)
+            except queue.Empty:
+                continue
+            if line is None:
+                raise RuntimeError(f"zephyr.exe exited while waiting for {pattern!r}")
+            m = rx.search(line)
+            if m:
+                return m
+
+    def drain(self):
+        while True:
+            try:
+                self.lines.get_nowait()
+            except queue.Empty:
+                return
+
+    def shell(self, command, timeout=5.0):
+        """Runs a shell command, returns its output lines (without echo/prompt)."""
+        self.drain()
+        self.proc.stdin.write((command + "\n").encode())
+        self.proc.stdin.flush()
+        out = []
+        deadline = time.monotonic() + timeout
+        seen_echo = False
+        while True:
+            left = deadline - time.monotonic()
+            if left <= 0:
+                raise TimeoutError(f"shell command {command!r} did not finish: {out}")
+            try:
+                line = self.lines.get(timeout=left)
+            except queue.Empty:
+                continue
+            if line is None:
+                raise RuntimeError("zephyr.exe exited")
+            if line.endswith(PROMPT.rstrip()) or line == PROMPT.rstrip():
+                if seen_echo:
+                    return out
+                continue
+            if not seen_echo and line.endswith(command):
+                seen_echo = True
+                continue
+            if seen_echo:
+                out.append(line)
+
+    def shell_kv(self, command, timeout=5.0):
+        """Parses `key: value` lines of a shell command into a dict."""
+        res = {}
+        for line in self.shell(command, timeout):
+            if ":" in line:
+                k, v = line.split(":", 1)
+                res[k.strip()] = v.strip()
+        return res
+
+
+@pytest.fixture(scope="session")
+def zephyr_exe(pytestconfig):
+    exe = Path(pytestconfig.getoption("--zephyr-exe"))
+    if not exe.exists():
+        pytest.skip(f"{exe} not built (fw/scripts/build-native.sh)")
+    return exe.resolve()
+
+
+@pytest.fixture
+def dut(zephyr_exe, pytestconfig, request, tmp_path):
+    log_dir = Path(pytestconfig.getoption("--log-dir"))
+    d = Dut(zephyr_exe, tmp_path, log_dir / f"{request.node.name}.log")
+    d.start()
+    d.wait_for(r"weatherstation \S+", timeout=15)
+    yield d
+    d.stop()

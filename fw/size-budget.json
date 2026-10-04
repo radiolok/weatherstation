@@ -1,0 +1,5 @@
+{
+  "comment": "ESP32-S3 application budget (slot is 4 MB, SRAM 512 KB). The size job only warns.",
+  "rom_kb": 1600,
+  "ram_kb": 320
+}

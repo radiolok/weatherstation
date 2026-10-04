@@ -1,0 +1,2 @@
+/* native_sim/native/64 uses the same nodes as native_sim. */
+#include "native_sim.overlay"
