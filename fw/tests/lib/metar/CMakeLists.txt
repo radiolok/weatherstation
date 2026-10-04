@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.20.0)
+list(APPEND ZEPHYR_EXTRA_MODULES ${CMAKE_CURRENT_SOURCE_DIR}/../../../modules/metar_cpp)
+find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
+project(test_metar)
+include(${CMAKE_CURRENT_SOURCE_DIR}/../common.cmake)
+ws_lib_add_metar(app)

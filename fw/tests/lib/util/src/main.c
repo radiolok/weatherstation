@@ -62,4 +62,26 @@ ZTEST(util, test_base64_hex)
 	zassert_false(ws_ct_equal("abc", "abd", 3));
 }
 
+ZTEST(util, test_url)
+{
+	struct ws_url u;
+
+	zassert_ok(ws_url_parse("https://tgftp.nws.noaa.gov/data/UNNT.TXT", &u));
+	zassert_true(u.tls);
+	zassert_equal(u.port, 443);
+	zassert_str_equal(u.host, "tgftp.nws.noaa.gov");
+	zassert_str_equal(u.path, "/data/UNNT.TXT");
+	zassert_ok(ws_url_parse("http://192.168.1.5:8000?a=1#frag", &u));
+	zassert_false(u.tls);
+	zassert_equal(u.port, 8000);
+	zassert_str_equal(u.host, "192.168.1.5");
+	zassert_str_equal(u.path, "/?a=1");
+	zassert_ok(ws_url_parse("https://h", &u));
+	zassert_str_equal(u.path, "/");
+	zassert_equal(ws_url_parse("ftp://h/x", &u), -1);
+	zassert_equal(ws_url_parse("https://:80/x", &u), -1);
+	zassert_equal(ws_url_parse("https://h:99999/x", &u), -1);
+	zassert_equal(ws_url_parse("https://h:x/", &u), -1);
+}
+
 ZTEST_SUITE(util, NULL, NULL, NULL, NULL, NULL);

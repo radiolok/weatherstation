@@ -1,4 +1,4 @@
-/* Small self-contained helpers: SHA-256, base64, hex. */
+/* Small self-contained helpers: SHA-256, base64, hex, URLs. */
 #ifndef WS_UTIL_H_
 #define WS_UTIL_H_
 
@@ -32,6 +32,16 @@ int ws_base64_decode(const char *in, size_t n, uint8_t *out, size_t cap);
 
 /* Constant-time comparison for secrets. */
 bool ws_ct_equal(const void *a, const void *b, size_t n);
+
+struct ws_url {
+	bool tls;      /* https */
+	uint16_t port; /* explicit or 80/443 */
+	char host[64];
+	char path[192]; /* with the query, "/" when empty */
+};
+
+/* Parses "http[s]://host[:port][/path?query]". 0 or -1. */
+int ws_url_parse(const char *url, struct ws_url *u);
 
 #ifdef __cplusplus
 }

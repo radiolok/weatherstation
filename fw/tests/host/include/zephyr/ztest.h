@@ -114,6 +114,14 @@ void ztest_host_skip(void) __attribute__((noreturn));
 #define zassert_is_null(p, ...)  zassert_true((p) == NULL, __VA_ARGS__)
 #define zassert_not_null(p, ...) zassert_true((p) != NULL, __VA_ARGS__)
 #define zassert_ok(x, ...)       zassert_equal((x), 0, __VA_ARGS__)
+#define zassert_str_equal(a, b, ...)                                                               \
+	do {                                                                                       \
+		const char *_sa = (a), *_sb = (b);                                                 \
+		if (strcmp(_sa, _sb) != 0) {                                                       \
+			fprintf(stderr, "  %s = \"%s\"\n  %s = \"%s\"\n", #a, _sa, #b, _sb);       \
+			ztest_host_fail(__FILE__, __LINE__, #a " != " #b, ZT_MSG(__VA_ARGS__));    \
+		}                                                                                  \
+	} while (0)
 #define zassert_unreachable(...)                                                                   \
 	ztest_host_fail(__FILE__, __LINE__, "unreachable", ZT_MSG(__VA_ARGS__))
 #define zassert_within(a, b, d, ...)                                                               \

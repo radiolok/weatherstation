@@ -15,6 +15,9 @@
 #include "display/display.h"
 #include "io/io.h"
 #include "mqtt/mqtt_svc.h"
+#ifdef CONFIG_WS_METAR
+#include "metar/metar.h"
+#endif
 #include "ota/ota.h"
 #include "web.h"
 #ifdef CONFIG_WS_NET
@@ -86,6 +89,20 @@ void api_status(int m, char *b, size_t n, struct api_resp *r)
 	ws_jw_kstr(&w, "screens_source", ws_app_cfg_source());
 	ws_jw_kbool(&w, "lamp", ws_io_lamp_state());
 	ws_jw_kstr(&w, "ota", ws_ota_state_str());
+#ifdef CONFIG_WS_METAR
+	{
+		static struct ws_metar_status ms;
+
+		ws_metar_status_get(&ms);
+		ws_jw_key(&w, "metar");
+		ws_jw_obj(&w);
+		ws_jw_kstr(&w, "report", ms.report);
+		ws_jw_kint(&w, "last_ok", ms.last_ok);
+		ws_jw_kint(&w, "source", ms.source + 1);
+		ws_jw_kint(&w, "error", ms.last_err);
+		ws_jw_obj_end(&w);
+	}
+#endif
 	ws_jw_obj_end(&w);
 	api_json(r, HTTP_200_OK, &w);
 }

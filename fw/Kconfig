@@ -45,7 +45,14 @@ config WS_WEB
 config WS_METAR
 	bool "METAR fallback over HTTPS"
 	default y
-	depends on METAR_CPP && NET_SOCKETS_SOCKOPT_TLS
+	depends on METAR_CPP && NET_SOCKETS_SOCKOPT_TLS && HTTP_CLIENT
+
+config WS_METAR_STACK_SIZE
+	int "METAR work queue stack"
+	default 8192
+	depends on WS_METAR
+	help
+	  The TLS handshake runs on this stack (mbedTLS needs several KB).
 
 config WS_OTA
 	bool "Firmware update over the network"

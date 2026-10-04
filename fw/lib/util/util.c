@@ -1,4 +1,5 @@
 /* SHA-256 (FIPS 180-4), base64 and hex, see ws/util.h. */
+#include <stdlib.h>
 #include <string.h>
 
 #include <ws/util.h>
@@ -235,4 +236,53 @@ bool ws_ct_equal(const void *a, const void *b, size_t n)
 		d |= x[i] ^ y[i];
 	}
 	return d == 0;
+}
+
+int ws_url_parse(const char *url, struct ws_url *u)
+{
+	const char *p;
+
+	memset(u, 0, sizeof(*u));
+	if (!strncmp(url, "https://", 8)) {
+		u->tls = true;
+		u->port = 443;
+		p = url + 8;
+	} else if (!strncmp(url, "http://", 7)) {
+		u->port = 80;
+		p = url + 7;
+	} else {
+		return -1;
+	}
+	size_t hl = strcspn(p, ":/?#");
+
+	if (hl == 0 || hl >= sizeof(u->host)) {
+		return -1;
+	}
+	memcpy(u->host, p, hl);
+	p += hl;
+	if (*p == ':') {
+		char *end;
+		long port = strtol(p + 1, &end, 10);
+
+		if (end == p + 1 || port < 1 || port > 65535) {
+			return -1;
+		}
+		u->port = (uint16_t)port;
+		p = end;
+	}
+	if (*p && *p != '/' && *p != '?') {
+		return -1;
+	}
+	size_t pl = strcspn(p, "#");
+
+	if (pl + 2 > sizeof(u->path)) {
+		return -1;
+	}
+	if (*p != '/') {
+		u->path[0] = '/';
+		memcpy(u->path + 1, p, pl);
+	} else {
+		memcpy(u->path, p, pl);
+	}
+	return 0;
 }

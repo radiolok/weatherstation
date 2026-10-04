@@ -35,7 +35,20 @@ if(CONFIG_WS_NET)
   endif()
 endif()
 
+if(CONFIG_WS_NET AND CONFIG_HTTP_CLIENT)
+  target_sources(app PRIVATE src/net/http_get.c)
+endif()
+
 target_sources_ifdef(CONFIG_WS_MQTT app PRIVATE src/mqtt/mqtt_svc.c)
+
+# METAR fallback: C++ adapter of au/metar_cpp + HTTPS fetch + root CAs
+if(CONFIG_WS_METAR)
+  ws_lib_add_metar(app)
+  target_sources(app PRIVATE src/metar/metar.c)
+  set(ca_c ${CMAKE_CURRENT_BINARY_DIR}/ws_gen/metar_ca.c)
+  ws_embed_file(${WS_FW_DIR}/src/metar/ca_bundle.pem ws_metar_ca_bundle ${ca_c})
+  target_sources(app PRIVATE ${ca_c})
+endif()
 target_sources_ifdef(CONFIG_WS_WEB app PRIVATE src/web/web.c src/web/api.c)
 
 # Emulators behind the same aliases on native_sim (BME280 on i2c-emul,

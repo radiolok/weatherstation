@@ -4,9 +4,10 @@
 #   cmake -S fw/tests/host -B build/host -G Ninja && ninja -C build/host
 #   ctest --test-dir build/host --output-on-failure
 cmake_minimum_required(VERSION 3.20)
-project(ws_host_tests C)
+project(ws_host_tests C CXX)
 
 set(CMAKE_C_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 set(WS_FW_DIR ${CMAKE_CURRENT_LIST_DIR}/../..)
 include(${WS_FW_DIR}/lib/lib.cmake)
 
@@ -27,6 +28,17 @@ add_library(ws_lib STATIC)
 ws_lib_add(ws_lib)
 target_include_directories(ws_lib PUBLIC ${WS_LIB_INCLUDE})
 target_link_libraries(ws_lib PUBLIC m)
+
+# METAR decoder (au/metar_cpp) and its adapter: C++ without exceptions and
+# RTTI, as in the firmware (fw/modules/metar_cpp).
+set(METAR_CPP_DIR ${WS_FW_DIR}/../au/metar_cpp)
+file(GLOB metar_srcs ${METAR_CPP_DIR}/src/*.cpp)
+target_sources(ws_lib PRIVATE ${metar_srcs} ${WS_FW_DIR}/lib/metar_map/metar_adapter.cpp)
+target_include_directories(ws_lib PRIVATE ${METAR_CPP_DIR}/include)
+set_source_files_properties(${metar_srcs} PROPERTIES COMPILE_OPTIONS "-fno-exceptions;-fno-rtti;-Wno-error")
+set_source_files_properties(${WS_FW_DIR}/lib/metar_map/metar_adapter.cpp
+  PROPERTIES COMPILE_OPTIONS "-fno-exceptions;-fno-rtti")
+target_link_libraries(ws_lib PUBLIC stdc++)
 
 enable_testing()
 file(GLOB suites LIST_DIRECTORIES true ${WS_FW_DIR}/tests/lib/*)
