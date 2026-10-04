@@ -1,0 +1,8 @@
+common:
+  tags: ws lib
+  platform_allow:
+    - native_sim/native/64
+  integration_platforms:
+    - native_sim/native/64
+tests:
+  ws.lib.ota: {}
