@@ -199,11 +199,6 @@ void ws_app_json_buf_give(void)
 	k_sem_give(&json_sem);
 }
 
-struct ws_jtok *ws_app_json_toks(void)
-{
-	return json_toks;
-}
-
 /* ---- configuration ---- */
 
 K_MUTEX_DEFINE(cfg_lock); /* serializes compile + swap */

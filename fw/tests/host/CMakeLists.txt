@@ -41,3 +41,7 @@ foreach(dir ${suites})
     add_test(NAME ${name} COMMAND test_${name})
   endif()
 endforeach()
+
+# JSON helper for the web UI mock server (fw/tests/web/mock_server.py)
+add_executable(wsapi ${CMAKE_CURRENT_LIST_DIR}/wsapi.c)
+target_link_libraries(wsapi PRIVATE ws_lib)

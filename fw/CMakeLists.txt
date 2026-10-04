@@ -36,6 +36,7 @@ if(CONFIG_WS_NET)
 endif()
 
 target_sources_ifdef(CONFIG_WS_MQTT app PRIVATE src/mqtt/mqtt_svc.c)
+target_sources_ifdef(CONFIG_WS_WEB app PRIVATE src/web/web.c src/web/api.c)
 
 # Emulators behind the same aliases on native_sim (BME280 on i2c-emul,
 # MH-Z19B on uart-emul, sign sniffer, button through gpio-emul)
@@ -47,4 +48,10 @@ if(CONFIG_WS_EMUL)
     emul/sign_sniffer.c
     emul/shell_emul.c
   )
+endif()
+
+# Web UI: gzip resources served by the HTTP server
+if(CONFIG_WS_WEB)
+  include(${WS_FW_DIR}/web/web.cmake)
+  ws_web_resources(app)
 endif()

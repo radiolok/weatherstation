@@ -69,10 +69,9 @@ const char *ws_app_cfg_source(void);
  * the lock while serializing). Returns length or -1. */
 int ws_app_cfg_json(char *buf, size_t len);
 
-/* Scratch buffers for JSON work (32 KB text + tokens); one user at a time. */
+/* Scratch buffer for JSON text up to 32 KB; one user at a time. */
 char *ws_app_json_buf_take(k_timeout_t timeout);
 void ws_app_json_buf_give(void);
-struct ws_jtok *ws_app_json_toks(void);
 
 /* ---- settings ---- */
 

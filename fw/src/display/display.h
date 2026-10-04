@@ -38,7 +38,7 @@ void ws_display_pin(int screen, uint32_t minutes);
 /* Shows a screen of an arbitrary config for `seconds` (<= 300) without
  * saving it. `screen_id` NULL: the first screen. */
 int ws_display_preview(const char *json, size_t len, const char *screen_id, uint32_t seconds,
-		       struct ws_cfg_errors *errs);
+		       struct ws_jtok *toks, struct ws_cfg_errors *errs);
 void ws_display_pattern(enum ws_sign_pattern p);
 int ws_display_pattern_parse(const char *s);
 void ws_display_get_stats(struct ws_display_stats *st);

@@ -33,8 +33,8 @@ static int new_tok(struct parser *p, enum ws_jtype type, size_t start)
 	struct ws_jtok *t = &p->j->t[p->j->count];
 
 	t->type = type;
-	t->start = (uint32_t)start;
-	t->end = (uint32_t)start;
+	t->start = (uint16_t)start;
+	t->end = (uint16_t)start;
 	t->size = 0;
 	t->skip = 0;
 	return p->j->count++;
@@ -62,7 +62,7 @@ static int parse_string(struct parser *p)
 			if (i < 0) {
 				return fail(p, i);
 			}
-			p->j->t[i].end = (uint32_t)p->pos;
+			p->j->t[i].end = (uint16_t)p->pos;
 			p->j->t[i].skip = (uint16_t)(i + 1);
 			p->pos++;
 			return i;
@@ -139,7 +139,7 @@ static int parse_number(struct parser *p)
 	if (i < 0) {
 		return fail(p, i);
 	}
-	p->j->t[i].end = (uint32_t)p->pos;
+	p->j->t[i].end = (uint16_t)p->pos;
 	p->j->t[i].skip = (uint16_t)(i + 1);
 	return i;
 }
@@ -162,7 +162,7 @@ static int parse_literal(struct parser *p, const char *lit, enum ws_jtype type)
 		return fail(p, i);
 	}
 	p->pos += l;
-	p->j->t[i].end = (uint32_t)p->pos;
+	p->j->t[i].end = (uint16_t)p->pos;
 	p->j->t[i].skip = (uint16_t)(i + 1);
 	return i;
 }
@@ -233,7 +233,7 @@ static int parse_container(struct parser *p, bool obj)
 	}
 done:
 	p->depth--;
-	p->j->t[i].end = (uint32_t)p->pos;
+	p->j->t[i].end = (uint16_t)p->pos;
 	p->j->t[i].skip = (uint16_t)p->j->count;
 	return i;
 }
@@ -276,6 +276,9 @@ int ws_json_parse(struct ws_json *j, const char *js, size_t len, struct ws_jtok 
 	j->t = toks;
 	j->count = 0;
 	j->err_pos = -1;
+	if (len > WS_JSON_MAX_LEN) {
+		return WS_JSON_ENOMEM;
+	}
 	int r = parse_value(&p);
 
 	if (r < 0) {
@@ -437,13 +440,13 @@ int ws_json_str(const struct ws_json *j, int tok, char *buf, size_t len)
 			cp = '\t';
 			break;
 		case 'u':
-			cp = (uint32_t)(hexval(s[i + 1]) << 12 | hexval(s[i + 2]) << 8 |
+			cp = (uint16_t)(hexval(s[i + 1]) << 12 | hexval(s[i + 2]) << 8 |
 					hexval(s[i + 3]) << 4 | hexval(s[i + 4]));
 			i += 4;
 			if (cp >= 0xD800 && cp < 0xDC00 && i + 6 < j->t[tok].end &&
 			    s[i + 1] == '\\' && s[i + 2] == 'u') {
 				uint32_t lo =
-					(uint32_t)(hexval(s[i + 3]) << 12 | hexval(s[i + 4]) << 8 |
+					(uint16_t)(hexval(s[i + 3]) << 12 | hexval(s[i + 4]) << 8 |
 						   hexval(s[i + 5]) << 4 | hexval(s[i + 6]));
 
 				if (lo >= 0xDC00 && lo < 0xE000) {

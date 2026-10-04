@@ -29,10 +29,13 @@ enum ws_jtype {
 	WS_J_NULL,
 };
 
+/* Documents up to 64 KB: offsets are 16 bit to keep a token at 10 bytes. */
+#define WS_JSON_MAX_LEN 65535
+
 struct ws_jtok {
 	uint8_t type;
-	uint32_t start; /* first byte (for strings: after the quote) */
-	uint32_t end;   /* one past the last byte (for strings: the closing quote) */
+	uint16_t start; /* first byte (for strings: after the quote) */
+	uint16_t end;   /* one past the last byte (for strings: the closing quote) */
 	uint16_t size;  /* children: members of an object (key+value pairs), items of an array */
 	uint16_t skip;  /* index of the token after this subtree */
 };

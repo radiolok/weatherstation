@@ -295,16 +295,14 @@ void ws_display_pin(int screen, uint32_t minutes)
 }
 
 int ws_display_preview(const char *json, size_t len, const char *screen_id, uint32_t seconds,
-		       struct ws_cfg_errors *errs)
+		       struct ws_jtok *toks, struct ws_cfg_errors *errs)
 {
-	struct ws_jtok *toks;
 	int r, s = 0;
 
 	if (seconds == 0 || seconds > 300) {
 		seconds = 60;
 	}
 	k_mutex_lock(&disp_lock, K_FOREVER);
-	toks = ws_app_json_toks();
 	r = ws_cfg_compile(json, len, &preview_cfg, errs, toks, WS_JSON_TOKENS);
 	if (r == 0 && screen_id) {
 		s = ws_cfg_screen_by_id(&preview_cfg, screen_id);

@@ -439,12 +439,107 @@
       return m;
     }
 
+
+    // ---- screen selection (fw/lib/screens/rules.c) for the simulator ----
+    function timeOk(rule, vars) {
+      const t = rule.time;
+      if (!t) return true;
+      const h = vars['time.hour'], m = vars['time.min'], dow = vars['time.dow'];
+      if (h === undefined || h === null || m === undefined || m === null || !dow) return false;
+      const days = t.days || [1, 2, 3, 4, 5, 6, 7];
+      if (!days.includes(dow)) return false;
+      const p = (s) => { const [a, b] = s.split(':').map(Number); return a * 60 + b; };
+      const from = p(t.from), to = p(t.to), cur = h * 60 + m;
+      if (from === to) return true;
+      return from < to ? cur >= from && cur < to : cur >= from || cur < to;
+    }
+    function describe(c, vars) {
+      const v = vars[c.var];
+      const val = Array.isArray(c.val) ? c.val.join('..') : c.val;
+      return `${c.var}=${v} ${c.op} ${val}`;
+    }
+    // Engine over a normalized config; state survives between steps.
+    function createEngine(ncfg) {
+      const st = ncfg.screens.map(() => ({ raw: false, active: false, rawSince: 0, falseSince: 0, activeSince: 0, why: '' }));
+      const conds = ncfg.screens.map((s) => (s.rule && (s.rule.all || s.rule.any) ? normCond(s.rule) : null));
+      const def = Math.max(0, ncfg.screens.findIndex((s) => s.default));
+      const e = { current: def, since: 0, reason: 'по умолчанию', pinned: -1, pinUntil: 0, candidates: [] };
+      const prio = (i) => (i === def || !ncfg.screens[i].rule ? 0 : (ncfg.screens[i].rule.prio || 50));
+      e.step = function (vars, t) {
+        let winner = def, wprio = 0;
+        e.candidates = [];
+        ncfg.screens.forEach((sc, i) => {
+          const r = sc.rule, s = st[i];
+          if (!r || i === def) { s.raw = s.active = false; return; }
+          let why = '';
+          let cond = true;
+          if (conds[i]) {
+            const res = condEval(conds[i], vars);
+            cond = res.ok;
+            const k = res.each.findIndex(Boolean);
+            if (k >= 0 && !conds[i].list[k].group) why = describe(conds[i].list[k], vars);
+          } else if (r.time) {
+            why = `время ${r.time.from}–${r.time.to}`;
+          }
+          const raw = sc.enabled && timeOk(r, vars) && cond;
+          if (raw && !s.raw) s.rawSince = t;
+          if (!raw && s.raw) s.falseSince = t;
+          s.raw = raw;
+          const was = s.active;
+          s.active = raw ? (was || t - s.rawSince >= (r.on_delay || 0)) : (was && t - s.falseSince < (r.off_delay || 0));
+          if (s.active && !was) s.activeSince = t;
+          if (raw) s.why = why;
+          let cand = s.active;
+          if (cand && r.mode === 'insert') {
+            const ins = r.insert || { show: 30, every: 10 };
+            cand = ((t - s.activeSince) % (ins.every * 60)) < ins.show;
+          }
+          if (cand) {
+            e.candidates.push(sc.id);
+            const p = r.prio || 50;
+            if (p > wprio) { winner = i; wprio = p; }
+          }
+        });
+        if (e.pinned >= 0 && e.pinUntil && t >= e.pinUntil) { e.pinned = -1; e.since = t - 86400; }
+        if (e.pinned >= 0) {
+          const ch = e.current !== e.pinned;
+          if (ch) { e.current = e.pinned; e.since = t; }
+          e.reason = 'закреплён вручную';
+          return ch;
+        }
+        const cur = e.current;
+        const curCand = e.candidates.includes(ncfg.screens[cur].id);
+        let changed = false;
+        if (winner !== cur) {
+          if (wprio > prio(cur) && winner !== def) { e.current = winner; e.since = t; changed = true; }
+          else if (!curCand || cur === def) {
+            const r = ncfg.screens[cur].rule;
+            const minShow = r && (r.mode || 'while') === 'while' ? (r.min_show === undefined ? 300 : r.min_show) : 0;
+            if (cur === def || t - e.since >= minShow) { e.current = winner; e.since = t; changed = true; }
+          }
+        }
+        if (e.current === def) e.reason = 'по умолчанию';
+        else if (e.candidates.includes(ncfg.screens[e.current].id)) e.reason = st[e.current].why;
+        else e.reason = 'минимальное время показа';
+        return changed;
+      };
+      return e;
+    }
+
+    // Frame difference: flipped dots and columns.
+    function diff(a, b) {
+      let dots = 0; const cols = new Set();
+      for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) { dots++; cols.add(i % W); }
+      return { dots, cols: cols.size };
+    }
+
     function rectsOverlap(a, b) {
       return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
     }
 
     return { W, H, TYPES, FORMS, VARS, normalize, normItem, renderScreen, defaultW, textW,
-      mobitec, rotatorPick, condEval, value, picto, rectsOverlap, heightOf, fb, blit, text };
+      mobitec, rotatorPick, condEval, value, picto, rectsOverlap, heightOf, fb, blit, text,
+      createEngine, timeOk, diff, normCond };
   }
 
   const api = { create, W, H, TYPES, FORMS, VARS };
