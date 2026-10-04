@@ -1,1 +1,14 @@
 *.key
+
+# Zephyr / west
+build/
+fw/build*/
+.west/
+
+# Python
+__pycache__/
+*.pyc
+
+# Editors
+.vscode/
+.idea/

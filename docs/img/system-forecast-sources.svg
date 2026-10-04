@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 290" width="900" height="290" role="img" aria-label="Прогноз собирает сервер, METAR на ESP остаётся резервом" font-family="'Segoe UI', 'Helvetica Neue', Arial, 'Liberation Sans', sans-serif">
+<defs>
+<marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#1c2019"/></marker>
+<marker id="s" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#1f5bb8"/></marker>
+</defs>
+<rect width="900" height="290" fill="#ffffff"/>
+<text x="24" y="30" font-size="15" font-weight="600" fill="#1c2019">Прогноз собирает сервер, METAR на ESP остаётся резервом</text>
+<rect x="20" y="72" width="150" height="52" rx="7" fill="none" stroke="#5b6454" stroke-dasharray="4 3"/>
+<text x="95" y="94" text-anchor="middle" font-size="13.5" font-weight="600" fill="#1c2019">METAR / TAF</text>
+<text x="95" y="112" text-anchor="middle" font-size="11.5" font-weight="400" fill="#5b6454">NOAA, aviationweather</text>
+<rect x="20" y="134" width="150" height="52" rx="7" fill="none" stroke="#5b6454" stroke-dasharray="4 3"/>
+<text x="95" y="156" text-anchor="middle" font-size="13.5" font-weight="600" fill="#1c2019">Яндекс</text>
+<text x="95" y="174" text-anchor="middle" font-size="11.5" font-weight="400" fill="#5b6454">/v2/informers</text>
+<rect x="20" y="196" width="150" height="52" rx="7" fill="none" stroke="#5b6454" stroke-dasharray="4 3"/>
+<text x="95" y="218" text-anchor="middle" font-size="13.5" font-weight="600" fill="#1c2019">Gismeteo</text>
+<text x="95" y="236" text-anchor="middle" font-size="11.5" font-weight="400" fill="#5b6454">API</text>
+<rect x="196" y="60" width="370" height="214" rx="7" fill="none" stroke="#5b6454" stroke-width="1.2" stroke-dasharray="6 4"/>
+<text x="212" y="80" text-anchor="start" font-size="12" font-weight="600" fill="#1c2019">Сервер · плагин Cockpit weatherfeed</text>
+<rect x="214" y="96" width="156" height="72" rx="7" fill="#fafbf7" stroke="#1c2019" stroke-width="1.2"/>
+<text x="292.0" y="120" text-anchor="middle" font-size="13.5" font-weight="600" fill="#1c2019">Скрипты</text>
+<text x="292.0" y="137" text-anchor="middle" font-size="11.5" fill="#5b6454">sources/*.py,</text>
+<text x="292.0" y="153" text-anchor="middle" font-size="11.5" fill="#5b6454">кэш ответов</text>
+<rect x="394" y="96" width="156" height="72" rx="7" fill="#fafbf7" stroke="#1c2019" stroke-width="1.2"/>
+<text x="472.0" y="120" text-anchor="middle" font-size="13.5" font-weight="600" fill="#1c2019">Приоритеты</text>
+<text x="472.0" y="137" text-anchor="middle" font-size="11.5" fill="#5b6454">переменная ×</text>
+<text x="472.0" y="153" text-anchor="middle" font-size="11.5" fill="#5b6454">источник</text>
+<rect x="394" y="190" width="156" height="72" rx="7" fill="#fafbf7" stroke="#1c2019" stroke-width="1.2"/>
+<text x="472.0" y="214" text-anchor="middle" font-size="13.5" font-weight="600" fill="#1c2019">derive.py</text>
+<text x="472.0" y="231" text-anchor="middle" font-size="11.5" fill="#5b6454">гололёд,</text>
+<text x="472.0" y="247" text-anchor="middle" font-size="11.5" fill="#5b6454">окно осадков</text>
+<path d="M170 98H184M170 160H184M170 222H184M184 98V222" fill="none" stroke="#1c2019" stroke-width="1.4"/>
+<path d="M184 132H212" fill="none" stroke="#1c2019" stroke-width="1.4" marker-end="url(#a)"/>
+<path d="M370 132H392" fill="none" stroke="#1c2019" stroke-width="1.4" marker-end="url(#a)"/>
+<path d="M472 168V188" fill="none" stroke="#1c2019" stroke-width="1.4" marker-end="url(#a)"/>
+<rect x="596" y="190" width="120" height="72" rx="7" fill="#fafbf7" stroke="#1c2019" stroke-width="1.2"/>
+<text x="656.0" y="214" text-anchor="middle" font-size="13.5" font-weight="600" fill="#1c2019">Mosquitto</text>
+<text x="656.0" y="231" text-anchor="middle" font-size="11.5" fill="#5b6454">forecast,</text>
+<text x="656.0" y="247" text-anchor="middle" font-size="11.5" fill="#5b6454">retain</text>
+<path d="M550 226H594" fill="none" stroke="#1c2019" stroke-width="1.4" marker-end="url(#a)"/>
+<rect x="746" y="150" width="140" height="112" rx="7" fill="#f6e9a8" stroke="#8a6a00" stroke-width="1.8"/>
+<text x="816.0" y="174" text-anchor="middle" font-size="13.5" font-weight="600" fill="#1c2019">ESP32-S3</text>
+<text x="816.0" y="191" text-anchor="middle" font-size="11.5" fill="#5b6454">fc.* из MQTT</text>
+<text x="816.0" y="207" text-anchor="middle" font-size="11.5" fill="#5b6454">obs.* из METAR</text>
+<text x="816.0" y="223" text-anchor="middle" font-size="11.5" fill="#5b6454">подмена через 2 ч</text>
+<path d="M716 226H744" fill="none" stroke="#1c2019" stroke-width="1.4" marker-end="url(#a)"/>
+<path d="M816 150V50H95V70" fill="none" stroke="#1f5bb8" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#s)"/>
+<text x="460" y="44" text-anchor="middle" font-size="11.5" font-weight="400" fill="#1f5bb8">резервный запрос METAR раз в 30 мин, разбор metar_cpp</text>
+<text x="214" y="286" text-anchor="start" font-size="11.5" font-weight="400" fill="#5b6454"></text>
+</svg>

@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Табло метеостанции 102×11</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;600;700&family=PT+Mono&display=swap">
+<style>
+/* Layout: одна колонка — пульт с ползунками сверху, ниже стопка «табло» с подписями */
+:root{
+  --bg:#eef0ea; --surface:#f8f9f5; --fg:#1d211a; --muted:#5d6656; --line:#d3d8cb;
+  --accent:#8a6d00; --panel:#121410; --dot-on:#f4d21c; --dot-off:#23261e;
+  --font-ui:"Golos Text", "Segoe UI", system-ui, sans-serif;
+  --font-mono:"PT Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#15170f; --surface:#1d2017; --fg:#e9ecdf; --muted:#9aa38c; --line:#30352a; --accent:#e8c739; color-scheme:dark } }
+:root[data-theme="dark"]{ --bg:#15170f; --surface:#1d2017; --fg:#e9ecdf; --muted:#9aa38c; --line:#30352a; --accent:#e8c739; color-scheme:dark }
+
+body{ margin:0; background:var(--bg); color:var(--fg); font-family:var(--font-ui); font-size:15px; line-height:1.5 }
+.wrap{ max-width:1100px; margin:0 auto; padding-inline:20px; padding-block:28px 56px; display:grid; gap:28px }
+h1{ font-size:clamp(22px,3vw,30px); margin:0; text-wrap:balance; font-weight:700 }
+.lede{ color:var(--muted); max-width:68ch; margin:6px 0 0 }
+.controls{ background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:16px;
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:12px 18px }
+.ctl{ display:grid; gap:2px; min-width:0 }
+.ctl label{ font-size:12px; letter-spacing:.04em; text-transform:uppercase; color:var(--muted) }
+.ctl .row{ display:flex; gap:8px; align-items:center }
+.ctl output{ font-family:var(--font-mono); min-width:5ch; text-align:right; font-variant-numeric:tabular-nums }
+input[type=range]{ width:100%; accent-color:var(--accent) }
+select{ font:inherit; padding:4px 6px; border-radius:6px; border:1px solid var(--line); background:var(--bg); color:var(--fg) }
+:focus-visible{ outline:2px solid var(--accent); outline-offset:2px }
+
+.screens{ display:grid; gap:26px }
+.screen{ display:grid; gap:8px; min-width:0 }
+.screen header{ display:flex; flex-wrap:wrap; gap:4px 14px; align-items:baseline }
+.screen h2{ font-size:17px; margin:0; font-weight:600 }
+.tag{ font-family:var(--font-mono); font-size:12px; color:var(--muted) }
+.sign{ background:var(--panel); border-radius:6px; padding:10px; box-shadow:inset 0 0 0 1px #000, 0 1px 0 var(--line) }
+.sign canvas{ display:block; width:100%; height:auto }
+.screen p{ margin:0; color:var(--muted); max-width:80ch }
+details{ font-size:13px } summary{ cursor:pointer; color:var(--muted) }
+pre{ font-family:var(--font-mono); font-size:12px; white-space:pre-wrap; word-break:break-all; background:var(--surface);
+  border:1px solid var(--line); padding:10px; border-radius:6px; margin:6px 0 0 }
+.notes{ border-top:1px solid var(--line); padding-top:16px; color:var(--muted); font-size:14px; max-width:80ch }
+.sub{ font-size:19px; margin:4px 0 -8px; font-weight:600 }
+.slots{ background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:16px }
+.slotbar{ display:flex; flex-wrap:wrap; gap:8px 16px; align-items:center }
+button{ font:inherit; font-weight:600; padding:6px 14px; border-radius:6px; border:1px solid var(--accent); background:var(--accent); color:var(--surface); cursor:pointer }
+button:active{ transform:translateY(1px) }
+.pick{ display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px }
+fieldset{ border:1px solid var(--line); border-radius:8px; margin:0; padding:8px 12px; min-width:0 }
+legend{ font-size:12px; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); padding:0 4px }
+fieldset label{ display:inline-flex; gap:5px; align-items:center; margin:2px 14px 2px 0; white-space:nowrap }
+.notes b{ color:var(--fg) }
+@media (prefers-reduced-motion: reduce){ *{ transition:none!important } }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <div>
+    <h1>Табло метеостанции 102×11</h1>
+    <p class="lede">Варианты экранов для табло Mobitec на собственных пиксельных шрифтах: крупные цифры 6×11 и мелкий 3×5, в котором две строки по 5 точек как раз занимают 11 рядов. Двигайте ползунки и проверяйте крайние случаи. Под каждым экраном есть готовый кадр Mobitec в hex.</p>
+  </div>
+
+  <section class="controls" aria-label="Пример данных">
+    <div class="ctl"><label for="tnow">Сейчас, °C</label><div class="row"><input id="tnow" type="range" min="-35" max="35" value="-2"><output for="tnow"></output></div></div>
+    <div class="ctl"><label for="tmax">Макс. за день</label><div class="row"><input id="tmax" type="range" min="-35" max="40" value="4"><output for="tmax"></output></div></div>
+    <div class="ctl"><label for="tmin">Мин. ночью</label><div class="row"><input id="tmin" type="range" min="-40" max="30" value="-7"><output for="tmin"></output></div></div>
+    <div class="ctl"><label for="cond">Сейчас на улице</label>
+      <select id="cond">
+        <option value="clear">ясно</option><option value="night">ясно, ночь</option>
+        <option value="pcloud" selected>переменная облачность</option><option value="pcloud_n">облачно, ночь</option>
+        <option value="cloudy">пасмурно</option><option value="rain">дождь</option>
+        <option value="snow">снег</option><option value="storm">гроза</option>
+      </select></div>
+    <div class="ctl"><label for="rain">Осадки начнутся</label>
+      <select id="rain"><option value="-1">не ожидаются</option><option value="1">через 1 ч</option><option value="3">через 3 ч</option><option value="5" selected>через 5 ч</option><option value="9">через 9 ч</option></select></div>
+    <div class="ctl"><label for="wind">Ветер, м/с</label><div class="row"><input id="wind" type="range" min="0" max="25" value="5"><output for="wind"></output></div></div>
+    <div class="ctl"><label for="wdir">Ветер дует с</label>
+      <select id="wdir"><option value="n">севера</option><option value="ne">северо-востока</option><option value="e">востока</option><option value="se">юго-востока</option><option value="s">юга</option><option value="sw">юго-запада</option><option value="w">запада</option><option value="nw" selected>северо-запада</option></select></div>
+    <div class="ctl"><label for="tin">Дома, °C</label><div class="row"><input id="tin" type="range" min="10" max="35" step="0.1" value="23.4"><output for="tin"></output></div></div>
+    <div class="ctl"><label for="rh">Влажность дома, %</label><div class="row"><input id="rh" type="range" min="10" max="99" value="41"><output for="rh"></output></div></div>
+    <div class="ctl"><label for="co2">CO2, ppm</label><div class="row"><input id="co2" type="range" min="400" max="3000" step="10" value="1240"><output for="co2"></output></div></div>
+    <div class="ctl"><label for="pr">Давление, мм рт. ст.</label><div class="row"><input id="pr" type="range" min="720" max="785" value="748"><output for="pr"></output></div></div>
+    <div class="ctl"><label for="ptr">Давление за 3 ч</label>
+      <select id="ptr"><option value="1">растёт</option><option value="0">стоит</option><option value="-1" selected>падает</option></select></div>
+  </section>
+
+  <section class="screen slots" aria-label="Режим слотов">
+    <header><h2>Слоты: центр постоянный, края меняются</h2><span class="tag">левый слот 0–29 · центр 31–70 · правый слот 72–101</span></header>
+    <div class="sign"><canvas id="slotcv" aria-label="Экран со сменными слотами"></canvas></div>
+    <div class="slotbar">
+      <button id="tick" type="button">Следующие полминуты</button>
+      <span id="clock" class="tag"></span>
+      <span id="flips" class="tag"></span>
+    </div>
+    <div class="pick">
+      <fieldset><legend>Левый слот, меняется в :00</legend><div id="pickL"></div></fieldset>
+      <fieldset><legend>Правый слот, меняется в :30</legend><div id="pickR"></div></fieldset>
+    </div>
+    <p>Перевернувшиеся точки на долю секунды подсвечиваются оранжевым. При смене одного слота это 20–30 столбцов. При CO2 от 1000 ppm и при дожде, который начнётся в ближайший час, соответствующий виджет можно принудительно держать в слоте.</p>
+  </section>
+
+  <h2 class="sub">Полноэкранные варианты</h2>
+  <section class="screens" id="screens"></section>
+
+  <div class="notes">
+    <p><b>Карусель.</b> Основной экран (A, B или E) держится 20–30 с, экран «Дома» показывается на 5 с. При CO2 от 1000 ppm значение на экране «Дома» инвертируется, и этот экран временно выходит в основную ротацию. Если табло флип-дотное, каждая смена картинки перекидывает точки, поэтому чем реже меняются экраны, тем тише табло и дольше живёт механика.</p>
+    <p><b>Кадр.</b> Изображение целиком передаётся «шрифтом» 0x77, три полосы по 4 строки, 102 колонки. Это около 330 байт и примерно 0,7 с на 4800 бод. Встроенные шрифты табло не используются.</p>
+  </div>
+</div>
+
+<script src="core.js"></script>
+<script>
+
+
+const $ = id => document.getElementById(id);
+const ids = ['tnow','tmax','tmin','cond','rain','wind','wdir','tin','rh','co2','pr','ptr'];
+
+function makeData(){
+  const T=+$('tnow').value, tmax=Math.max(+$('tmax').value,T), tmin=Math.min(+$('tmin').value,T);
+  const rainAt=+$('rain').value; const hour0=new Date().getHours();
+  const hourly=[];
+  for(let i=0;i<24;i++){
+    let t;
+    if(i<=4) t=T+(tmax-T)*i/4; else if(i<=16) t=tmax+(tmin-tmax)*(i-4)/12; else t=tmin+(T-tmin)*(i-16)/8;
+    const inRain = rainAt>=0 && i>=rainAt && i<rainAt+4;
+    hourly.push({h:(hour0+i)%24, t:Math.round(t), pop: inRain ? (i===rainAt+1?85:65) : 10});
+  }
+  return { now:{t:T, cond:$('cond').value, wind:+$('wind').value, windDir:$('wdir').value}, hourly,
+           indoor:{t:+$('tin').value, rh:+$('rh').value, co2:+$('co2').value, p:+$('pr').value, ptrend:+$('ptr').value} };
+}
+
+const NEXT = c => (c==='night'||c==='pcloud_n') ? {label:'УТРО', cond:'pcloud'} : {label:'НОЧЬ', cond:'night'};
+
+const SCREENS = [
+  { id:'A', name:'Симметричный', tag:'центр: сейчас · слева: осадки, ветер · справа: макс/мин',
+    fn:d=>screenA(d),
+    text:'Температура и иконка стоят по центру. Слева видно, во сколько начнётся дождь и откуда дует ветер (стрелка показывает, куда он несёт). Справа максимум и минимум на ближайшие 16 часов. Если смотреть только в центр, видна текущая погода, а если по краям, то что будет дальше.' },
+  { id:'B', name:'Сейчас + график 12 часов', tag:'линия температуры, полоски осадков, пунктир 0°',
+    fn:d=>screenB(d),
+    text:'Справа кривая температуры на 12 часов, по 4 точки на час, с засечками каждые 3 часа. Внизу полоски осадков: одна строка при вероятности от 50%, две при 80% и выше. Пунктир отмечает 0°, если кривая его пересекает, так что гололёд видно сразу. По краю подписаны максимум и минимум.' },
+  { id:'C', name:'Сейчас → дальше', tag:'две иконки и две крупные температуры',
+    fn:d=>{ const n=NEXT(d.now.cond); const st=d.hourly.slice(0,16).map(h=>h.t); return screenC(d,n.label,{t:n.label==='НОЧЬ'?Math.min(...st):Math.max(...st), cond:n.cond}); },
+    text:'Два крупных блока: сейчас и следующая часть суток. Этот вариант лучше всего читается издалека, но ветер и время дождя на нём не помещаются. Подходит как второй экран в паре с A или B.' },
+  { id:'E', name:'Плотный', tag:'вся сводка на одном экране',
+    fn:d=>screenE(d),
+    text:'Иконка и температура слева, справа две строки мелким шрифтом: диапазон за день, окно осадков с часа по час и ветер. Если показывать только один уличный экран, то этот.' },
+  { id:'D', name:'Дома', tag:'BME280 + MH-Z19B · инверсия при CO2 ≥ 1000',
+    fn:d=>screenD(d),
+    text:'Домик, температура с десятыми, влажность и CO2. Когда CO2 доходит до 1000 ppm, значение инвертируется, и это заметно даже боковым зрением. Давление тоже можно добавить: ему хватит места справа вместо влажности или на отдельном маленьком экране.' },
+];
+
+const host = $('screens');
+const cards = SCREENS.map(s=>{
+  const el=document.createElement('article'); el.className='screen';
+  el.innerHTML = `<header><h2>${s.id}. ${s.name}</h2><span class="tag">${s.tag}</span></header>
+    <div class="sign"><canvas aria-label="Экран ${s.id}: ${s.name}"></canvas></div><p>${s.text}</p>
+    <details><summary>Кадр Mobitec</summary><pre></pre></details>`;
+  host.appendChild(el); return {s, cv:el.querySelector('canvas'), pre:el.querySelector('pre')};
+});
+
+function draw(cv, f, hl){
+  const dpr = window.devicePixelRatio||1, cssW = cv.parentElement.clientWidth-20;
+  const pitch = cssW / W, cssH = pitch*H;
+  cv.style.height = cssH+'px';
+  cv.width = Math.round(cssW*dpr); cv.height = Math.round(cssH*dpr);
+  const g=cv.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0);
+  const cs=getComputedStyle(document.documentElement);
+  const on=cs.getPropertyValue('--dot-on').trim(), off=cs.getPropertyValue('--dot-off').trim();
+  const r = pitch*0.42; const hot='#ff7a1a';
+  for(let y=0;y<H;y++) for(let x=0;x<W;x++){
+    g.beginPath(); g.arc((x+.5)*pitch,(y+.5)*pitch,r,0,Math.PI*2);
+    g.fillStyle = (hl&&hl[y*W+x]) ? hot : (f[y*W+x]?on:off); g.fill();
+  }
+}
+
+function render(){
+  if(typeof renderSlots==='function' && slotState) renderSlots();
+  for(const id of ids){ const o=document.querySelector(`output[for="${id}"]`); if(o) o.textContent=$(id).value; }
+  const d=makeData();
+  for(const c of cards){
+    const f=c.s.fn(d); draw(c.cv,f);
+    const m=mobitec(f);
+    c.pre.textContent = `${m.length} байт ≈ ${(m.length*10/4800).toFixed(2)} с на 4800 8N1\n` + m.map(b=>b.toString(16).padStart(2,'0')).join(' ');
+  }
+}
+
+// ---- режим слотов ----
+const KEYS = Object.keys(WIDGETS);
+const DEF_L = ['rain','wind','press','home'], DEF_R = ['range','graph','co2'];
+function mkPick(host, defs, side){
+  KEYS.forEach(k=>{ const id=`w${side}_${k}`; const l=document.createElement('label');
+    l.innerHTML=`<input type="checkbox" id="${id}" ${defs.includes(k)?'checked':''}> ${WIDGETS[k].name}`;
+    host.appendChild(l); l.querySelector('input').addEventListener('change',()=>{ slotState.reset=true; renderSlots(); }); });
+}
+mkPick($('pickL'),DEF_L,'L'); mkPick($('pickR'),DEF_R,'R');
+const picked = side => KEYS.filter(k=>$(`w${side}_${k}`).checked);
+const slotState = { half:0, li:0, ri:0, prev:null, hl:null, reset:true };
+let hlTimer=null;
+function renderSlots(){
+  const d=makeData(); const L=picked('L'), R=picked('R');
+  const lk=L.length?L[slotState.li%L.length]:null, rk=R.length?R[slotState.ri%R.length]:null;
+  const f=screenSlots(d,lk,rk);
+  const cv=$('slotcv');
+  if(slotState.prev && !slotState.reset){
+    const mask=new Uint8Array(f.length); for(let i=0;i<f.length;i++) mask[i]=slotState.prev[i]!==f[i]?1:0;
+    const df=diff(slotState.prev,f);
+    $('flips').textContent=`перевернулось точек: ${df.dots}, столбцов: ${df.cols}`;
+    draw(cv,f,mask); clearTimeout(hlTimer); hlTimer=setTimeout(()=>draw(cv,f),650);
+  } else { draw(cv,f); $('flips').textContent='нажмите кнопку, чтобы сменить слот'; }
+  const mm=Math.floor(slotState.half/2), ss=slotState.half%2?'30':'00';
+  $('clock').textContent=`t = ${String(mm).padStart(2,'0')}:${ss} · слева: ${lk?WIDGETS[lk].name:'—'} · справа: ${rk?WIDGETS[rk].name:'—'}`;
+  slotState.prev=f; slotState.reset=false; slotState.f=f;
+}
+$('tick').addEventListener('click',()=>{
+  slotState.half++;
+  if(slotState.half%2===0) slotState.li++; else slotState.ri++;
+  renderSlots();
+});
+
+ids.forEach(id=>$(id).addEventListener('input',()=>{ slotState.reset=true; render(); }));
+window.addEventListener('resize',render);
+render();
+</script>
+
+</body>
+</html>
