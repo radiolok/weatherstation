@@ -36,7 +36,18 @@ def forecast(dut, obj):
 
 
 def connect_mqtt(dut, broker):
+    """Connects the device and waits until it has subscribed: "connected"
+    comes with CONNACK, the subscriptions follow, and a command published in
+    between is lost. The session publishes display/cfg after subscribing;
+    a fresh (not retained) copy of it marks the moment."""
+    broker.subscribe("ws/#")
     dut.shell(f"ws set mqtt.host {broker.host}")
     dut.shell(f"ws set mqtt.port {broker.port}")
     wait_until(lambda: "connected" == status(dut)["mqtt"], 15, what="MQTT connected")
-    return status(dut)["id"]
+    dev = status(dut)["id"]
+
+    def subscribed():
+        with broker.lock:
+            return any(t == f"ws/{dev}/display/cfg" and not r for t, _, r in broker.messages)
+    wait_until(subscribed, 10, what="MQTT session set up")
+    return dev

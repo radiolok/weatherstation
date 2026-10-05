@@ -22,7 +22,7 @@ from cryptography.hazmat.primitives import hashes, serialization  # noqa: E402
 from cryptography.hazmat.primitives.asymmetric import ec  # noqa: E402
 from cryptography.x509.oid import NameOID  # noqa: E402
 
-NOW = 1791117000  # 2026-10-04 11:50 UTC
+NOW = 1791114600  # 2026-10-04 11:50 UTC
 REPORT = "UNNT 041130Z 24005MPS 9999 -FZRA OVC010 M02/M03 Q1012 R25/290245 NOSIG"
 
 

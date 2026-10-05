@@ -78,8 +78,13 @@ class Dut:
             if chunk == b"\n" or buf.endswith(PROMPT.encode()):
                 line = ANSI.sub("", buf.decode("utf-8", errors="replace")).rstrip("\r\n")
                 buf = b""
-                self._log.write(line + "\n")
-                self._log.flush()
+                log = self._log  # None once stop() closed it
+                if log:
+                    try:
+                        log.write(line + "\n")
+                        log.flush()
+                    except ValueError:  # closed meanwhile
+                        pass
                 self.history_t.append(time.monotonic() - self.t0)
                 self.history.append(line)
                 self.lines.put(line)
