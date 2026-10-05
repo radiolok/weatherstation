@@ -36,7 +36,8 @@ ZBUS_CHAN_DEFINE(ws_chan_mqtt, struct ws_msg_mqtt, NULL, NULL, ZBUS_OBSERVERS_EM
 /* ---- clock ---- */
 
 static int64_t unix_base; /* unix - uptime, 0 before the first sync */
-static struct k_work_delayable clock_work;
+static void clock_tick(struct k_work *w);
+static K_WORK_DELAYABLE_DEFINE(clock_work, clock_tick); /* static: see display.c */
 static bool clock_started;
 static int64_t last_sync;
 static char sync_server[64];
@@ -409,7 +410,6 @@ static void clock_tick(struct k_work *w)
 
 void ws_app_clock_start(void)
 {
-	k_work_init_delayable(&clock_work, clock_tick);
 	clock_started = true;
 	k_work_reschedule(&clock_work, K_NO_WAIT);
 }

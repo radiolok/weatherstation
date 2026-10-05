@@ -29,7 +29,8 @@ static bool boot_held;
 static bool lamp_on;
 static enum ws_led_pattern led_auto = WS_LED_SLOW;
 static enum ws_led_pattern led_forced = WS_LED_COUNT;
-static struct k_work lamp_store_work;
+static void lamp_store(struct k_work *w);
+static K_WORK_DEFINE(lamp_store_work, lamp_store); /* static: see display.c */
 
 /* ---- lamp ---- */
 
@@ -163,7 +164,6 @@ int ws_io_start(void)
 	if (!gpio_is_ready_dt(&led) || gpio_pin_configure_dt(&led, GPIO_OUTPUT_INACTIVE)) {
 		LOG_ERR("LED GPIO not ready");
 	}
-	k_work_init(&lamp_store_work, lamp_store);
 	/* gpio-keys already configured the pin as input */
 	boot_held = gpio_is_ready_dt(&button) && gpio_pin_get_dt(&button) > 0;
 	ws_button_init(&btn, boot_held, k_uptime_get());

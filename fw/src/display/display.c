@@ -23,7 +23,11 @@ LOG_MODULE_REGISTER(ws_display, LOG_LEVEL_INF);
 
 static const struct device *const uart = DEVICE_DT_GET(SIGN_UART);
 
-static struct k_work_delayable work;
+static void display_step(struct k_work *w);
+/* Defined statically: zbus listeners reschedule it from the first screens
+ * load on, before ws_display_start(); initializing a scheduled item at run
+ * time would corrupt the kernel timeout list. */
+static K_WORK_DELAYABLE_DEFINE(work, display_step);
 static struct ws_frame last; /* last frame sent */
 static bool have_last;
 static int64_t last_tx_ms;
@@ -366,7 +370,6 @@ int ws_display_start(void)
 		return -ENODEV;
 	}
 	flips_hour_start = k_uptime_get() / 1000;
-	k_work_init_delayable(&work, display_step);
 	k_work_reschedule(&work, K_MSEC(100));
 	return 0;
 }
