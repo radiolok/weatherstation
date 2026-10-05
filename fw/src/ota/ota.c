@@ -235,7 +235,7 @@ ZBUS_LISTENER_DEFINE(ws_ota_mqtt_lis, mqtt_listener_cb);
 ZBUS_CHAN_ADD_OBS(ws_chan_mqtt, ws_ota_mqtt_lis, 4);
 
 #ifdef CONFIG_WS_SMP
-#include <zephyr/mgmt/mcumgr/transport/smp_udp.h>
+#include "smp_udp.h"
 
 /* MCUmgr over UDP opens once the network is up (development builds) */
 static void smp_open_fn(struct k_work *w)
@@ -243,10 +243,10 @@ static void smp_open_fn(struct k_work *w)
 	static bool opened;
 
 	if (!opened) {
-		int ret = smp_udp_open();
+		int ret = ws_smp_udp_open(CONFIG_WS_SMP_PORT);
 
 		opened = ret == 0;
-		LOG_INF("SMP over UDP port %d: %d", CONFIG_MCUMGR_TRANSPORT_UDP_PORT, ret);
+		LOG_INF("SMP over UDP port %d: %d", CONFIG_WS_SMP_PORT, ret);
 	}
 }
 static K_WORK_DEFINE(smp_open_work, smp_open_fn);

@@ -8,6 +8,7 @@ on a host port and MQTT connects to a broker on the host.
 """
 import os
 import shutil
+import socket
 import queue
 import re
 import subprocess
@@ -59,7 +60,7 @@ class Dut:
             # host socket calls of NSOS, printed with a failure (CI diagnostics)
             self.strace_path = self.workdir / "strace.txt"
             cmd = ["strace", "-f", "--kill-on-exit", "-tt", "-o", str(self.strace_path), "-e",
-                   "trace=%network,close,dup,epoll_ctl", *cmd]
+                   "trace=%network,close,dup,epoll_ctl,eventfd2", *cmd]
         self._log.write(f"\n### start {' '.join(cmd)}\n")
         self.proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                      stderr=subprocess.STDOUT, cwd=self.workdir, bufsize=0)
@@ -228,12 +229,24 @@ def zephyr_exe(pytestconfig):
     return exe.resolve()
 
 
+def wait_listening(port, timeout=10.0):
+    """The HTTP server binds its socket in its own thread after the banner."""
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        try:
+            socket.create_connection(("127.0.0.1", port), timeout=1).close()
+            return
+        except OSError:
+            time.sleep(0.05)
+
+
 @pytest.fixture
 def dut(zephyr_exe, pytestconfig, request, tmp_path):
     log_dir = Path(pytestconfig.getoption("--log-dir"))
     d = Dut(zephyr_exe, tmp_path, log_dir / f"{request.node.name}.log")
     d.start()
     d.wait_for(r"weatherstation \S+", timeout=15)
+    wait_listening(pytestconfig.getoption("--http-port"))
     yield d
     rep = getattr(request.node, "rep_call", None)
     if rep is not None and rep.failed and d.proc.poll() is None:

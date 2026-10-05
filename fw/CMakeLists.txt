@@ -41,6 +41,10 @@ endif()
 
 target_sources_ifdef(CONFIG_WS_MQTT app PRIVATE src/mqtt/mqtt_svc.c)
 target_sources_ifdef(CONFIG_WS_OTA app PRIVATE src/ota/ota.c)
+if(CONFIG_WS_SMP)
+  target_sources(app PRIVATE src/ota/smp_udp.c)
+  target_include_directories(app PRIVATE ${ZEPHYR_BASE}/subsys/mgmt/mcumgr/transport/include)
+endif()
 target_sources_ifdef(CONFIG_WS_WATCHDOG app PRIVATE src/wdt/watchdog.c)
 
 # METAR fallback: C++ adapter of au/metar_cpp + HTTPS fetch + root CAs

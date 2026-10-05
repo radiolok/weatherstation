@@ -76,12 +76,18 @@ config WS_OTA_STACK_SIZE
 
 config WS_SMP
 	bool "MCUmgr (SMP) over UDP for development"
-	depends on MCUMGR_TRANSPORT_UDP && WS_NET
+	depends on MCUMGR && WS_NET
 	default y
 	help
-	  Opens the SMP UDP port once the network is up. No authentication:
-	  only in development builds (overlay-smp.conf); MCUboot still
-	  rejects images without the right signature.
+	  Opens the SMP UDP port once the network is up (own transport,
+	  fw/src/ota/smp_udp.c). No authentication: only in development
+	  builds (overlay-smp.conf); MCUboot still rejects images without
+	  the right signature.
+
+config WS_SMP_PORT
+	int "SMP UDP port"
+	default 1337
+	depends on WS_SMP
 
 config WS_WATCHDOG
 	bool "Task watchdog on every service thread"
