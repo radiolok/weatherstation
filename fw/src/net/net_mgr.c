@@ -125,7 +125,13 @@ static void publish(enum ws_net_status st)
 
 static void run(struct ws_net_out o)
 {
+	static enum ws_net_state logged = WS_NET_START;
 	struct ws_settings s;
+
+	if (fsm.st != logged) {
+		LOG_INF("network: %s -> %s", ws_net_state_name(logged), ws_net_state_name(fsm.st));
+		logged = fsm.st;
+	}
 
 	ws_io_led_set_auto(o.led);
 	if (o.act & WS_NETACT_OFFLINE) {

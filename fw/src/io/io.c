@@ -24,6 +24,7 @@ static const struct gpio_dt_spec button = GPIO_DT_SPEC_GET(DT_ALIAS(ws_button), 
 #define BUTTON_CODE DT_PROP(DT_ALIAS(ws_button), zephyr_code)
 
 static struct ws_button btn;
+static struct k_spinlock btn_lock; /* input thread (edges) vs work queue (poll) */
 static bool boot_held;
 static bool lamp_on;
 static enum ws_led_pattern led_auto = WS_LED_SLOW;
@@ -118,14 +119,30 @@ static void on_input(struct input_event *evt, void *user_data)
 	if (evt->type != INPUT_EV_KEY || evt->code != BUTTON_CODE) {
 		return;
 	}
-	publish_button(ws_button_edge(&btn, evt->value != 0, k_uptime_get()));
+	k_spinlock_key_t key = k_spin_lock(&btn_lock);
+	enum ws_btn_event ev = ws_button_edge(&btn, evt->value != 0, k_uptime_get());
+
+	k_spin_unlock(&btn_lock, key);
+	publish_button(ev);
 }
 
 INPUT_CALLBACK_DEFINE(DEVICE_DT_GET(BUTTON_KEYS), on_input, NULL);
 
+/* Long press and timeouts: polled from the system work queue, not from the
+ * timer ISR (zbus listeners must not run in interrupt context). */
+static void button_poll_work(struct k_work *w)
+{
+	k_spinlock_key_t key = k_spin_lock(&btn_lock);
+	enum ws_btn_event ev = ws_button_poll(&btn, k_uptime_get());
+
+	k_spin_unlock(&btn_lock, key);
+	publish_button(ev);
+}
+static K_WORK_DEFINE(button_work, button_poll_work);
+
 static void button_poll(struct k_timer *t)
 {
-	publish_button(ws_button_poll(&btn, k_uptime_get()));
+	k_work_submit(&button_work);
 }
 
 K_TIMER_DEFINE(button_timer, button_poll, NULL);

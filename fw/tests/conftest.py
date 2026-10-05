@@ -200,12 +200,19 @@ def dut(zephyr_exe, pytestconfig, request, tmp_path):
     d.start()
     d.wait_for(r"weatherstation \S+", timeout=15)
     yield d
-    d.stop()
     rep = getattr(request.node, "rep_call", None)
+    if rep is not None and rep.failed and d.proc.poll() is None:
+        # thread states (who waits on what) for the CI output
+        for cmd in ("kernel thread list", "ws status", "ws net"):
+            try:
+                d.shell(cmd, timeout=5)
+            except Exception as e:  # noqa: BLE001 - diagnostics only
+                d.history.append(f"<{cmd}: {e}>")
+    d.stop()
     if rep is not None and rep.failed:
         # the device log in the CI output, next to the failure
-        print(f"---- zephyr.exe console, last 150 of {len(d.history)} lines ----")
-        print("\n".join(d.history[-150:]))
+        print(f"---- zephyr.exe console, last 250 of {len(d.history)} lines ----")
+        print("\n".join(d.history[-250:]))
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)

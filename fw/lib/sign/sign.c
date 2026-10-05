@@ -272,11 +272,25 @@ int ws_mobitec_decode(const uint8_t *in, size_t len, struct ws_frame *f, uint8_t
 		*addr = in[1];
 	}
 	cs = in[1] + in[2];
-	while (i < len - 1) {
+	/* The checksum is one byte, or FE 00 (=FE) / FE 01 (=FF), right before
+	 * the final FF. It is found from the end: as a value it can look like
+	 * a column (20..2F) or a command byte (D2..D4). FE never occurs in the
+	 * body, so it marks the two-byte form. */
+	size_t end;
+	unsigned int got;
+
+	if (len >= 6 && in[len - 3] == 0xFE && in[len - 2] <= 1) {
+		end = len - 3;
+		got = 0xFE + in[len - 2];
+	} else {
+		end = len - 2;
+		got = in[len - 2];
+	}
+	while (i < end) {
 		uint8_t b = in[i];
 
 		if (b == 0xD2 || b == 0xD3 || b == 0xD4) {
-			if (i + 1 >= len - 1) {
+			if (i + 1 >= end) {
 				return -2;
 			}
 			if (b == 0xD2) {
@@ -298,19 +312,8 @@ int ws_mobitec_decode(const uint8_t *in, size_t len, struct ws_frame *f, uint8_t
 			x++;
 			i++;
 		} else {
-			break; /* checksum */
+			return -4; /* not a bitmap frame */
 		}
-	}
-	/* Checksum: one byte, or FE 00 (=FE) / FE 01 (=FF). */
-	size_t rest = len - 1 - i;
-	unsigned int got;
-
-	if (rest == 1) {
-		got = in[i];
-	} else if (rest == 2 && in[i] == 0xFE && in[i + 1] <= 1) {
-		got = 0xFE + in[i + 1];
-	} else {
-		return -4;
 	}
 	return (cs & 0xFF) == got ? 0 : -5;
 }

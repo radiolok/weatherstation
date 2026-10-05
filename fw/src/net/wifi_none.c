@@ -13,6 +13,7 @@ static struct k_work_delayable connected_work;
 
 static void connected(struct k_work *w)
 {
+	LOG_INF("native_sim: link up");
 	if (cb) {
 		cb(WS_WIFI_EV_CONNECTED);
 	}

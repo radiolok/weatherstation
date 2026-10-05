@@ -248,4 +248,45 @@ ZTEST(sign, test_text_metrics)
 	zassert_equal(ws_dir_opposite(WS_DIR_NW), WS_DIR_SE);
 }
 
+ZTEST(sign, test_decode_every_checksum)
+{
+	/* The checksum byte can look like a column (20..2F), a command (D2..D4)
+	 * or need the FE escape: random frames until every value was seen. */
+	uint8_t mob[WS_MOBITEC_MAX];
+	bool seen[256] = {false};
+	int left = 0;
+
+	/* the values that the old decoder misread */
+	for (int v = 0x20; v <= 0x2F; v++) {
+		seen[v] = true;
+		left++;
+	}
+	seen[0xD2] = seen[0xD3] = seen[0xD4] = seen[0xFE] = seen[0xFF] = true;
+	left += 5;
+	uint32_t rnd = 12345;
+
+	for (int it = 0; it < 200000 && left; it++) {
+		struct ws_frame f, g;
+
+		ws_frame_clear(&f);
+		rnd = rnd * 1103515245u + 12345u;
+		int dots = (rnd >> 16) % 600;
+
+		for (int k = 0; k < dots; k++) {
+			rnd = rnd * 1103515245u + 12345u;
+			ws_frame_set(&f, (rnd >> 8) % WS_W, (rnd >> 20) % WS_H, true);
+		}
+		size_t n = ws_mobitec_encode(&f, 0x06, mob, sizeof(mob));
+		uint8_t cs = mob[n - 2] <= 1 && mob[n - 3] == 0xFE ? 0xFE + mob[n - 2] : mob[n - 2];
+
+		zassert_ok(ws_mobitec_decode(mob, n, &g, NULL), "checksum %02x", cs);
+		zassert_mem_equal(f.bits, g.bits, sizeof(f.bits));
+		if (seen[cs]) {
+			seen[cs] = false;
+			left--;
+		}
+	}
+	zassert_equal(left, 0, "not every risky checksum value was produced");
+}
+
 ZTEST_SUITE(sign, NULL, NULL, NULL, NULL, NULL);

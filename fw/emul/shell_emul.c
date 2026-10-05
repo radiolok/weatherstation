@@ -101,10 +101,14 @@ SHELL_STATIC_SUBCMD_SET_CREATE(
 SHELL_SUBCMD_ADD((ws), emul, &emul_cmds, "native_sim emulators", NULL, 0, 0);
 
 /* The emulated pin reads 0 (= pressed, active low) until told otherwise:
- * release the button before gpio-keys and the io service look at it. */
+ * release the button before gpio-keys and the io service look at it.
+ * gpio-emul accepts an input level only on an input pin, and gpio-keys
+ * configures it later, so configure it here first. */
 static int button_release_at_boot(void)
 {
-	return gpio_emul_input_set_dt(&button, 1);
+	int ret = gpio_pin_configure_dt(&button, GPIO_INPUT);
+
+	return ret ? ret : gpio_emul_input_set_dt(&button, 1);
 }
 
 SYS_INIT(button_release_at_boot, POST_KERNEL, 60);
