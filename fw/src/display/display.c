@@ -35,7 +35,7 @@ static enum ws_sign_pattern pattern;
 static char last_state_key[WS_ID_LEN + 96];
 
 /* preview of a configuration that is not saved */
-static struct ws_config preview_cfg;
+static WS_BIG_BSS struct ws_config preview_cfg;
 static int preview_screen = -1;
 static int64_t preview_until_ms;
 

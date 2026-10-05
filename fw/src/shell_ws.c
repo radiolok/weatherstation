@@ -261,7 +261,7 @@ static int cmd_set(const struct shell *sh, size_t argc, char **argv)
 
 static int cmd_settings(const struct shell *sh, size_t argc, char **argv)
 {
-	static char buf[4096];
+	static WS_BIG_BSS char buf[4096];
 	struct ws_settings s;
 
 	ws_app_settings_get(&s);

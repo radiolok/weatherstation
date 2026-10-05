@@ -66,7 +66,11 @@ static void sysq_feed(struct k_work *w)
 
 int ws_watchdog_start(void)
 {
-	const struct device *hw = DEVICE_DT_GET_OR_NULL(DT_ALIAS(watchdog0));
+#if defined(CONFIG_WATCHDOG) && DT_NODE_HAS_STATUS_OKAY(DT_ALIAS(watchdog0))
+	const struct device *hw = DEVICE_DT_GET(DT_ALIAS(watchdog0));
+#else
+	const struct device *hw = NULL; /* native_sim: software channels only */
+#endif
 
 	if (hw && !device_is_ready(hw)) {
 		hw = NULL;

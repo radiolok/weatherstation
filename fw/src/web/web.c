@@ -62,7 +62,7 @@ STATIC_GZ(style, "/style.css", "text/css; charset=utf-8");
 
 /* ---- API plumbing ---- */
 
-static char resp_buf[WS_WEB_RESP_MAX];
+static WS_BIG_BSS char resp_buf[WS_WEB_RESP_MAX];
 static const struct http_header json_headers[] = {
 	{.name = "Content-Type", .value = "application/json; charset=utf-8"},
 	{.name = "Cache-Control", .value = "no-store"},
@@ -81,7 +81,7 @@ struct route {
 	size_t cap;
 	bool overflow;
 	bool holds_json_buf;
-	char small[2048];
+	char small[512]; /* bodies of the small requests (lamp, pin...); big ones use the JSON buffer */
 };
 
 void api_error(struct api_resp *r, int status, const char *msg)

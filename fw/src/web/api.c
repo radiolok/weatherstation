@@ -30,7 +30,7 @@ extern const unsigned int ws_glyphs_json_len;
 
 static struct ws_cfg_errors errs;
 /* one token buffer for the web thread (requests are served one at a time) */
-static struct ws_jtok toks[WS_JSON_TOKENS];
+static WS_BIG_BSS struct ws_jtok toks[WS_JSON_TOKENS];
 
 static void errors_resp(struct api_resp *r, int status)
 {
@@ -131,7 +131,7 @@ void api_screens(int m, char *b, size_t n, struct api_resp *r)
 
 void api_screens_validate(int m, char *b, size_t n, struct api_resp *r)
 {
-	static struct ws_config scratch;
+	static WS_BIG_BSS struct ws_config scratch;
 
 	if (ws_cfg_compile(b, n, &scratch, &errs, toks, WS_JSON_TOKENS)) {
 		errors_resp(r, HTTP_422_UNPROCESSABLE_ENTITY);
@@ -280,7 +280,7 @@ void api_display_state(int m, char *b, size_t n, struct api_resp *r)
  * -> {"frame": "<base64 of 141 bytes>", "rows": ["#..", ...]} */
 void api_render(int m, char *b, size_t n, struct api_resp *r)
 {
-	static struct ws_config cfg;
+	static WS_BIG_BSS struct ws_config cfg;
 	static struct ws_vars vars;
 	struct ws_json j;
 	struct ws_frame f;

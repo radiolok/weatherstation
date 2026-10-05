@@ -107,7 +107,7 @@ K_MUTEX_DEFINE(state_lock);
 
 static struct ws_vars vars;
 /* Two compiled configurations: the active one and the one being built. */
-static struct ws_config cfgs[2];
+static WS_BIG_BSS struct ws_config cfgs[2];
 static int active;
 static struct ws_engine engine;
 static const char *cfg_source = "factory";
@@ -185,8 +185,8 @@ void ws_app_clear(int id)
 
 /* ---- JSON scratch ---- */
 
-static char json_buf[WS_MAX_FILE + 1];
-static struct ws_jtok json_toks[WS_JSON_TOKENS];
+static WS_BIG_BSS char json_buf[WS_MAX_FILE + 1];
+static WS_BIG_BSS struct ws_jtok json_toks[WS_JSON_TOKENS];
 K_SEM_DEFINE(json_sem, 1, 1);
 
 char *ws_app_json_buf_take(k_timeout_t timeout)

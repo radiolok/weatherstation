@@ -21,6 +21,15 @@
 #include <ws/tz.h>
 #include <ws/vars.h>
 
+/* Large buffers (configurations, JSON text and tokens, HTTP responses) live
+ * in PSRAM on the ESP32-S3: internal DRAM is kept for stacks, Wi-Fi and the
+ * network stack. Zero-initialized, never initialized data. */
+#ifdef CONFIG_ESP_SPIRAM
+#define WS_BIG_BSS __attribute__((section(".ext_ram.bss")))
+#else
+#define WS_BIG_BSS
+#endif
+
 /* ---- clock ---- */
 
 /* Monotonic seconds and unix time (0 until the first NTP sync). */
