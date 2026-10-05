@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" width="960" height="420" role="img" aria-label="Фазы F0–F10 проверяются в CI, железо нужно только на стенде после F11" font-family="'Segoe UI', 'Helvetica Neue', Arial, 'Liberation Sans', sans-serif">
+<defs>
+<marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#1c2019"/></marker>
+<marker id="s" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#1f5bb8"/></marker>
+</defs>
+<rect width="960" height="420" fill="#ffffff"/>
+<text x="24" y="30" font-size="15" font-weight="600" fill="#1c2019">Фазы F0–F10 проверяются в CI, железо нужно только на стенде после F11</text>
+<rect x="24" y="180" width="158" height="58" rx="7" fill="#f6e9a8" stroke="#8a6a00" stroke-width="1.8"/>
+<text x="103.0" y="204" text-anchor="middle" font-size="13.5" font-weight="600" fill="#1c2019">F0 · Каркас и CI</text>
+<text x="103.0" y="221" text-anchor="middle" font-size="11.5" fill="#5b6454">west, оверлеи, workflow</text>
+<rect x="216" y="64" width="158" height="58" rx="7" fill="#fafbf7" stroke="#1c2019" stroke-width="1.2"/>
+<text x="295.0" y="88" text-anchor="middle" font-size="13.5" font-weight="600" fill="#1c2019">F1 · Ядро табло</text>
+<text x="295.0" y="105" text-anchor="middle" font-size="11.5" fill="#5b6454">рендер, кодер, эталоны</text>
+<rect x="216" y="140" width="158" height="58" rx="7" fill="#fafbf7" stroke="#1c2019" stroke-width="1.2"/>
+<text x="295.0" y="164" text-anchor="middle" font-size="13.5" font-weight="600" fill="#1c2019">F2 · Переменные</text>
+<text x="295.0" y="181" text-anchor="middle" font-size="11.5" fill="#5b6454">конфигурация, LittleFS</text>
+<rect x="216" y="216" width="158" height="58" rx="7" fill="#fafbf7" stroke="#1c2019" stroke-width="1.2"/>
+<text x="295.0" y="240" text-anchor="middle" font-size="13.5" font-weight="600" fill="#1c2019">F5 · Датчики, IO</text>
+<text x="295.0" y="257" text-anchor="middle" font-size="11.5" fill="#5b6454">эмуляторы, автоматы</text>
+<rect x="216" y="292" width="158" height="58" rx="7" fill="#fafbf7" stroke="#1c2019" stroke-width="1.2"/>
+<text x="295.0" y="316" text-anchor="middle" font-size="13.5" font-weight="600" fill="#1c2019">F6 · Сеть и время</text>
+<text x="295.0" y="333" text-anchor="middle" font-size="11.5" fill="#5b6454">автомат Wi-Fi, SNTP, TZ</text>
+<rect x="408" y="102" width="158" height="58" rx="7" fill="#fafbf7" stroke="#1c2019" stroke-width="1.2"/>
+<text x="487.0" y="126" text-anchor="middle" font-size="13.5" font-weight="600" fill="#1c2019">F3 · Движок экранов</text>
+<text x="487.0" y="143" text-anchor="middle" font-size="11.5" fill="#5b6454">правила, прогон суток</text>
+<rect x="408" y="254" width="158" height="58" rx="7" fill="#fafbf7" stroke="#1c2019" stroke-width="1.2"/>
+<text x="487.0" y="278" text-anchor="middle" font-size="13.5" font-weight="600" fill="#1c2019">F7 · MQTT и HA</text>
+<text x="487.0" y="295" text-anchor="middle" font-size="11.5" fill="#5b6454">Mosquitto в CI</text>
+<rect x="408" y="330" width="158" height="58" rx="7" fill="#fafbf7" stroke="#1c2019" stroke-width="1.2"/>
+<text x="487.0" y="354" text-anchor="middle" font-size="13.5" font-weight="600" fill="#1c2019">F9 · Резерв METAR</text>
+<text x="487.0" y="371" text-anchor="middle" font-size="11.5" fill="#5b6454">HTTPS с тестовым CA</text>
+<rect x="600" y="64" width="158" height="58" rx="7" fill="#fafbf7" stroke="#1c2019" stroke-width="1.2"/>
+<text x="679.0" y="88" text-anchor="middle" font-size="13.5" font-weight="600" fill="#1c2019">F4 · Сервис табло</text>
+<text x="679.0" y="105" text-anchor="middle" font-size="11.5" fill="#5b6454">uart-emul</text>
+<rect x="600" y="178" width="158" height="58" rx="7" fill="#fafbf7" stroke="#1c2019" stroke-width="1.2"/>
+<text x="679.0" y="202" text-anchor="middle" font-size="13.5" font-weight="600" fill="#1c2019">F8 · Веб и конструктор</text>
+<text x="679.0" y="219" text-anchor="middle" font-size="11.5" fill="#5b6454">REST, Playwright</text>
+<rect x="600" y="330" width="158" height="58" rx="7" fill="#fafbf7" stroke="#1c2019" stroke-width="1.2"/>
+<text x="679.0" y="354" text-anchor="middle" font-size="13.5" font-weight="600" fill="#1c2019">F10 · OTA, надёжность</text>
+<text x="679.0" y="371" text-anchor="middle" font-size="11.5" fill="#5b6454">флеш-симулятор, wdt</text>
+<rect x="792" y="178" width="158" height="58" rx="7" fill="#f6e9a8" stroke="#8a6a00" stroke-width="1.8"/>
+<text x="871.0" y="202" text-anchor="middle" font-size="13.5" font-weight="600" fill="#1c2019">F11 · Выпуск</text>
+<text x="871.0" y="219" text-anchor="middle" font-size="11.5" fill="#5b6454">артефакты, чек-лист</text>
+<path d="M182 209.0H198" fill="none" stroke="#1c2019" stroke-width="1.4"/>
+<path d="M198 93.0V321.0" fill="none" stroke="#1c2019" stroke-width="1.4"/>
+<path d="M198 93.0H214" fill="none" stroke="#1c2019" stroke-width="1.4" marker-end="url(#a)"/>
+<path d="M198 169.0H214" fill="none" stroke="#1c2019" stroke-width="1.4" marker-end="url(#a)"/>
+<path d="M198 245.0H214" fill="none" stroke="#1c2019" stroke-width="1.4" marker-end="url(#a)"/>
+<path d="M198 321.0H214" fill="none" stroke="#1c2019" stroke-width="1.4" marker-end="url(#a)"/>
+<path d="M374 93.0H390V123.0H406" fill="none" stroke="#1c2019" stroke-width="1.4" marker-end="url(#a)"/>
+<path d="M374 169.0H390V139.0H406" fill="none" stroke="#1c2019" stroke-width="1.4" marker-end="url(#a)"/>
+<path d="M374 321.0H390V283.0H406" fill="none" stroke="#1c2019" stroke-width="1.4" marker-end="url(#a)"/>
+<path d="M390 321.0V359.0H406" fill="none" stroke="#1c2019" stroke-width="1.4" marker-end="url(#a)"/>
+<path d="M374 329.0H382V400H679.0V390" fill="none" stroke="#1c2019" stroke-width="1.4" marker-end="url(#a)"/>
+<path d="M566 123.0H582V93.0H598" fill="none" stroke="#1c2019" stroke-width="1.4" marker-end="url(#a)"/>
+<path d="M566 139.0H582V207.0H598" fill="none" stroke="#1c2019" stroke-width="1.4" marker-end="url(#a)"/>
+<path d="M566 283.0H590V221.0H598" fill="none" stroke="#1c2019" stroke-width="1.4" marker-end="url(#a)"/>
+<path d="M758 93.0H776" fill="none" stroke="#1c2019" stroke-width="1.4"/>
+<path d="M758 207.0H776" fill="none" stroke="#1c2019" stroke-width="1.4"/>
+<path d="M758 359.0H776" fill="none" stroke="#1c2019" stroke-width="1.4"/>
+<path d="M776 93.0V359.0" fill="none" stroke="#1c2019" stroke-width="1.4"/>
+<path d="M776 207.0H790" fill="none" stroke="#1c2019" stroke-width="1.4" marker-end="url(#a)"/>
+<text x="792" y="270" text-anchor="start" font-size="11.5" font-weight="400" fill="#5b6454">Дальше — стенды A и B,</text>
+<text x="792" y="286" text-anchor="start" font-size="11.5" font-weight="400" fill="#5b6454">проверки H1–H19</text>
+</svg>

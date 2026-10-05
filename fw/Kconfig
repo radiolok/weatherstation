@@ -1,0 +1,99 @@
+# Weatherstation application options.
+
+mainmenu "Weatherstation"
+
+menu "Weatherstation"
+
+config WS_VERSION
+	string "Firmware version string"
+	default "0.1.0-dev"
+
+config WS_DEVICE_PREFIX
+	string "Prefix of the device id (MQTT topics, AP SSID)"
+	default "ws"
+
+config WS_EMUL
+	bool "native_sim emulators (BME280, MH-Z19B, sign sniffer, button)"
+	default y if BOARD_NATIVE_SIM
+	depends on EMUL
+
+config WS_NET
+	bool "Network manager (Wi-Fi STA/AP state machine, SNTP, mDNS)"
+	default y
+	depends on NETWORKING
+
+config WS_NET_WIFI
+	bool "ESP32 Wi-Fi adapter"
+	default y if WIFI
+	depends on WS_NET
+
+config WS_HTTP_PORT
+	int "HTTP port of the web page"
+	default 8080 if BOARD_NATIVE_SIM
+	default 80
+
+config WS_NTP_DEFAULT_SERVER
+	string "NTP server used while ntp.server1 is empty"
+	default "pool.ntp.org"
+	depends on WS_NET
+	help
+	  Empty on native_sim: the tests set the clock themselves and use a
+	  local SNTP server, a sync with the internet would overwrite it.
+
+config WS_MQTT
+	bool "MQTT and Home Assistant discovery"
+	default y
+	depends on MQTT_LIB
+
+config WS_WEB
+	bool "Web page and REST API"
+	default y
+	depends on HTTP_SERVER
+
+config WS_METAR
+	bool "METAR fallback over HTTPS"
+	default y
+	depends on METAR_CPP && NET_SOCKETS_SOCKOPT_TLS && HTTP_CLIENT
+
+config WS_METAR_STACK_SIZE
+	int "METAR work queue stack"
+	default 8192
+	depends on WS_METAR
+	help
+	  The TLS handshake runs on this stack (mbedTLS needs several KB).
+
+config WS_OTA
+	bool "Firmware update over the network"
+	default y
+	depends on NETWORKING && HTTP_CLIENT && MCUBOOT_IMG_MANAGER && IMG_MANAGER
+
+config WS_OTA_STACK_SIZE
+	int "OTA work queue stack"
+	default 8192
+	depends on WS_OTA
+	help
+	  The download may use TLS (https:// URL).
+
+config WS_SMP
+	bool "MCUmgr (SMP) over UDP for development"
+	depends on MCUMGR && WS_NET
+	default y
+	help
+	  Opens the SMP UDP port once the network is up (own transport,
+	  fw/src/ota/smp_udp.c). No authentication: only in development
+	  builds (overlay-smp.conf); MCUboot still rejects images without
+	  the right signature.
+
+config WS_SMP_PORT
+	int "SMP UDP port"
+	default 1337
+	depends on WS_SMP
+
+config WS_WATCHDOG
+	bool "Task watchdog on every service thread"
+	default y
+	depends on TASK_WDT
+
+endmenu
+
+source "Kconfig.zephyr"

@@ -56,14 +56,9 @@ git clone --recursive https://github.com/radiolok/weatherstation.git
 - [x] Первая версия на Raspberry Pi ([`legacy/rpi`](legacy/rpi/))
 - [x] Аппаратная архитектура и распиновка
 - [x] Архитектура прошивки и техническое задание на конструктор экранов
-- [ ] Разбор недавней погоды, состояния ВПП и QFE в metar_cpp (патч готов)
-- [ ] Окружение Zephyr, вывод тестового кадра на табло
-- [ ] Датчики, кнопка, подсветка
-- [ ] Wi-Fi, MQTT, Home Assistant
-- [ ] Конструктор экранов
-- [ ] Точка доступа и веб-настройка
-- [ ] MCUboot и OTA
-- [ ] Резерв METAR на ESP
+- [x] Разбор недавней погоды, состояния ВПП и QFE в metar_cpp (ветка `runway-state-recent-weather`)
+- [x] Прошивка на Zephyr 4.3, фазы F0–F10 без железа: табло, датчики, кнопка и подсветка, Wi-Fi и NTP, MQTT и Home Assistant, конструктор экранов и веб-страница, резерв METAR, MCUboot и OTA, watchdog ([отчёт](fw/docs/implementation-report.md))
+- [ ] Проверки на железе H1–H19 ([план](fw/docs/implementation-plan.md#проверки-на-железе))
 - [ ] weatherfeed для Cockpit
 
 ## Лицензия

@@ -1,0 +1,6 @@
+config METAR_CPP
+	bool "metar_cpp METAR decoder library"
+	depends on CPP
+	select REQUIRES_FULL_LIBCPP
+	help
+	  Builds the METAR decoder from au/metar_cpp (C++17, no exceptions).

@@ -1,0 +1,134 @@
+/*
+ * ESP32-S3-DevKitC-1U N16R8 in the weatherstation (pinout: hw/README.md).
+ *
+ *   UART1 TX 17 / RX 18   RS-485 to the Mobitec sign, 4800 8N1
+ *   UART2 TX 4 / RX 5     MH-Z19B, 9600 8N1
+ *   I2C0 SDA 8 / SCL 9    BME280 at 0x76
+ *   GPIO10                lamp key (NPN base), off at boot
+ *   GPIO11                service button to GND
+ *   GPIO12                status LED
+ *
+ * Flash 16 MB: MCUboot 64K, sys 64K, slot0 4M, slot1 4M, NVS 64K,
+ * LittleFS 1M, the rest is free.
+ */
+#include <zephyr/dt-bindings/input/input-event-codes.h>
+#include <zephyr/dt-bindings/gpio/gpio.h>
+#include <zephyr/dt-bindings/pinctrl/esp32s3-pinctrl.h>
+
+/ {
+	chosen {
+		ws,sign-uart = &uart1;
+	};
+
+	aliases {
+		ws-lamp = &lamp_key;
+		ws-led = &status_led;
+		ws-button = &svc_button;
+		ws-co2 = &mhz19b;
+		ws-thp = &bme280;
+	};
+
+	ws_outputs {
+		compatible = "gpio-leds";
+		lamp_key: lamp_key {
+			gpios = <&gpio0 10 GPIO_ACTIVE_HIGH>;
+			label = "Lamp key";
+		};
+		status_led: status_led {
+			gpios = <&gpio0 12 GPIO_ACTIVE_HIGH>;
+			label = "Status LED";
+		};
+	};
+
+	ws_buttons: ws_buttons {
+		compatible = "gpio-keys";
+		debounce-interval-ms = <30>;
+		svc_button: svc_button {
+			gpios = <&gpio0 11 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+			label = "Service button";
+			zephyr,code = <INPUT_KEY_MENU>;
+		};
+	};
+
+	fstab {
+		compatible = "zephyr,fstab";
+		lfs1: lfs1 {
+			compatible = "zephyr,fstab,littlefs";
+			mount-point = "/lfs";
+			partition = <&lfs_partition>;
+			automount;
+			read-size = <16>;
+			prog-size = <16>;
+			cache-size = <256>;
+			lookahead-size = <32>;
+			block-cycles = <512>;
+		};
+	};
+};
+
+&pinctrl {
+	uart2_default: uart2_default {
+		group1 {
+			pinmux = <UART2_TX_GPIO4>;
+			output-high;
+		};
+		group2 {
+			pinmux = <UART2_RX_GPIO5>;
+			bias-pull-up;
+		};
+	};
+
+	i2c0_ws: i2c0_ws {
+		group1 {
+			pinmux = <I2C0_SDA_GPIO8>,
+				 <I2C0_SCL_GPIO9>;
+			bias-pull-up;
+			drive-open-drain;
+			output-high;
+		};
+	};
+};
+
+/* Sign: TX only, the RS-485 driver is always enabled (DE/RE to VCC). */
+&uart1 {
+	status = "okay";
+	current-speed = <4800>;
+	pinctrl-0 = <&uart1_default>;
+	pinctrl-names = "default";
+};
+
+&uart2 {
+	status = "okay";
+	current-speed = <9600>;
+	pinctrl-0 = <&uart2_default>;
+	pinctrl-names = "default";
+
+	mhz19b: mhz19b {
+		compatible = "winsen,mhz19b";
+		maximum-range = <5000>;
+	};
+};
+
+&i2c0 {
+	status = "okay";
+	clock-frequency = <I2C_BITRATE_STANDARD>;
+	pinctrl-0 = <&i2c0_ws>;
+	pinctrl-names = "default";
+
+	bme280: bme280@76 {
+		compatible = "bosch,bme280";
+		reg = <0x76>;
+	};
+};
+
+/* i2c1 shares GPIO4/5 with UART2 in the board pinctrl */
+&i2c1 {
+	status = "disabled";
+};
+
+#include "esp32s3_ws_partitions.dtsi"
+
+/* N16R8: 8 MB octal PSRAM (16 MB flash is set in the partitions file) */
+&psram0 {
+	size = <DT_SIZE_M(8)>;
+};

@@ -1,0 +1,77 @@
+{
+  "schema": 1,
+  "screens": [
+    {
+      "id": "stuffy", "name": "Душно", "enabled": true,
+      "rule": {
+        "all": [ { "var": "in.co2", "op": ">", "val": 1000, "hyst": 100 } ],
+        "time": { "from": "07:00", "to": "23:00" },
+        "prio": 70, "on_delay": 120, "min_show": 60
+      },
+      "items": [
+        { "type": "picto", "form": "L", "name": "home", "x": 0 },
+        { "type": "co2", "form": "L", "x": 14, "w": 74, "align": "center" },
+        { "type": "picto", "form": "L", "name": "window", "x": 91 }
+      ]
+    },
+    {
+      "id": "rain", "name": "Дождь скоро", "enabled": true,
+      "rule": {
+        "all": [ { "var": "fc.rain_in", "op": "<=", "val": 180, "hyst": 15 } ],
+        "time": { "from": "06:00", "to": "23:00" },
+        "prio": 50, "off_delay": 600, "min_show": 300
+      },
+      "items": [
+        { "type": "rain", "form": "S2", "x": 0, "w": 30, "skip": false },
+        { "type": "icon", "form": "L", "var": "out.cond", "x": 33 },
+        { "type": "temp", "form": "L", "var": "out.t", "x": 47, "w": 24, "plus": true },
+        { "type": "rotator", "x": 72, "w": 30, "period": 60, "offset": 30,
+          "items": [ { "type": "graph", "form": "L", "hours": 12 },
+                     { "type": "range", "form": "S2", "hours": 16, "align": "right" } ] }
+      ]
+    },
+    {
+      "id": "evening", "name": "Вечер дома", "enabled": true,
+      "rule": {
+        "time": { "from": "22:00", "to": "07:00" },
+        "prio": 30, "min_show": 300
+      },
+      "items": [
+        { "type": "picto", "form": "L", "name": "home", "x": 0 },
+        { "type": "temp", "form": "L", "var": "in.t", "x": 14, "w": 36, "tenths": true },
+        { "type": "rotator", "x": 72, "w": 30, "period": 60, "offset": 0,
+          "items": [ { "type": "humidity", "form": "S", "var": "in.rh", "y": 3, "align": "right" },
+                     { "type": "co2", "form": "S2", "align": "right" },
+                     { "type": "temp", "form": "S", "var": "out.t", "y": 3, "plus": true, "align": "right" } ] }
+      ]
+    },
+    {
+      "id": "noforecast", "name": "Нет прогноза", "enabled": true,
+      "rule": {
+        "all": [ { "var": "fc.age", "op": ">", "val": 120 },
+                 { "var": "obs.age", "op": ">", "val": 90 } ],
+        "prio": 20, "min_show": 300
+      },
+      "items": [
+        { "type": "picto", "form": "L", "name": "home", "x": 0 },
+        { "type": "temp", "form": "L", "var": "in.t", "x": 14, "w": 36, "tenths": true },
+        { "type": "picto", "form": "L", "name": "nolink", "x": 91 }
+      ]
+    },
+    {
+      "id": "main", "name": "Обычный", "default": true, "enabled": true,
+      "items": [
+        { "type": "rotator", "x": 0, "y": 0, "w": 30, "h": 11, "period": 60, "offset": 0,
+          "items": [ { "type": "wind", "form": "S2" },
+                     { "type": "humidity", "form": "S", "var": "out.rh", "y": 3 } ] },
+        { "type": "icon", "form": "L", "var": "out.cond", "x": 33, "y": 0,
+          "alts": [ { "type": "picto", "form": "L", "name": "skid",
+                      "when": { "all": [ { "var": "fc.ice", "op": "=", "val": true } ] } } ] },
+        { "type": "temp", "form": "L", "var": "out.t", "x": 47, "y": 0, "w": 24, "align": "left", "plus": true },
+        { "type": "rotator", "x": 72, "y": 0, "w": 30, "h": 11, "period": 60, "offset": 30,
+          "items": [ { "type": "range", "form": "S2", "hours": 16, "align": "right" },
+                     { "type": "pressure", "form": "S2", "align": "right" } ] }
+      ]
+    }
+  ]
+}
