@@ -2,7 +2,37 @@
 
 Прошивка для ESP32-S3 на Zephyr. Board target — `esp32s3_devkitc/esp32s3/procpu`, распиновка задаётся в overlay (см. [`hw/`](../hw/)). Загрузчик MCUboot, сборка через sysbuild.
 
-Код пока не написан. Здесь описана архитектура, по которой он будет строиться, а порядок работ и проверки на железе — в [`docs/implementation-plan.md`](docs/implementation-plan.md). Подробное ТЗ на конструктор экранов лежит в [`docs/screen-constructor.md`](../docs/screen-constructor.md).
+Порядок работ и проверки на железе — в [`docs/implementation-plan.md`](docs/implementation-plan.md), что сделано и как проверено — в [`docs/implementation-report.md`](docs/implementation-report.md). ТЗ на конструктор экранов — [`docs/screen-constructor.md`](../docs/screen-constructor.md).
+
+## Сборка и проверка
+
+```sh
+west init -l --mf fw/west.yml weatherstation && west update && west blobs fetch hal_espressif
+west build -b esp32s3_devkitc/esp32s3/procpu --sysbuild fw     # плата + MCUboot, подписанный образ
+west build -b native_sim/native/64 fw -- -DEXTRA_CONF_FILE=overlay-smp.conf   # на ПК
+```
+
+Те же шаги, что в CI ([`.github/workflows/fw.yml`](../.github/workflows/fw.yml)), запускаются локально скриптами из [`scripts/`](scripts/):
+
+| Скрипт | Что делает | Нужно |
+| --- | --- | --- |
+| `lint.sh [--fix]` | clang-format, сгенерированные шрифты и эталонные кадры не устарели | node, clang-format |
+| `host-tests.sh` | вся логика `lib/` на ПК с ASan/UBSan за секунды | cmake, ninja, gcc/g++ |
+| `unit.sh`, `golden.sh` | те же наборы ztest под twister на `native_sim`, покрытие | west, Zephyr SDK |
+| `integration.sh` | прошивка на `native_sim` + pytest: табло, датчики, NTP, MQTT, METAR, OTA | west, Mosquitto на 1883 |
+| `web.sh [--mock]` | рендерер в node, Playwright против макета и против `native_sim` | node, playwright |
+| `build-target.sh` | ESP32-S3 + MCUboot, `merged.bin`, подписанный образ, отчёт размеров | west, SDK, blobs |
+
+Проверки на плате H1–H19 — `fw/tests/hw` под `west twister --device-testing` (см. [`testcase.yaml`](testcase.yaml)).
+
+| Каталог | Содержимое |
+| --- | --- |
+| `lib/` | вся логика на чистом C без Zephyr: табло, JSON, переменные, компилятор экранов, правила, датчики, сеть, время, HA, настройки, METAR, OTA |
+| `src/` | сервисы Zephyr — только связка `lib/` с драйверами, zbus, сетью и оболочкой |
+| `emul/` | эмуляторы BME280, MH-Z19B и снифер табло для `native_sim` |
+| `web/` | веб-страница (без сборки, gzip в прошивке) и её тесты |
+| `tests/` | `lib/` — ztest, `host/` — запуск ztest на ПК, `integration/`, `web/`, `hw/` — pytest |
+| `boards/`, `sysbuild/`, `keys/` | overlay, разметка флеша, MCUboot, **тестовый** ключ подписи |
 
 ## Блоки
 
@@ -12,15 +42,16 @@
 
 | Модуль | Исполнение | Период или событие | Подсистемы Zephyr |
 | --- | --- | --- | --- |
-| sensors | поток, низкий приоритет | 30 с | `bosch,bme280`, `winsen,mhz19b`, кольцевой буфер давления на 3 ч |
-| metar | поток | 30 мин | HTTP client, mbedTLS, модуль [`au/metar_cpp`](../au/) |
+| sensors | поток, низкий приоритет | 30 с | `bosch,bme280`, `winsen,mhz19b` (на `native_sim` — свои эмуляторы), кольцевой буфер давления на 3 ч |
+| metar | своя очередь работ | 30 мин, после синхронизации часов | HTTP client, mbedTLS, модуль [`au/metar_cpp`](../au/) |
 | net_mgr | поток + события net_mgmt | события Wi-Fi и кнопки | `wifi_mgmt`, DHCPv4 server в режиме AP, SNTP, mDNS |
 | mqtt | поток с `poll()` | непрерывно, переподключение 1 → 60 с | MQTT client, LWT, retain |
 | web | потоки HTTP-сервера | по запросу | `HTTP_SERVER`, статика в gzip |
-| display | `k_work_delayable` | правила раз в 10 с, зоны по часам | UART async API |
+| display | zbus listener + поток передачи | изменения переменных, минута | UART, кадр отдаёт отдельный поток через `uart_poll_out` |
 | lamp | zbus listener | команда или кнопка | GPIO |
-| ota | отдельный поток на время загрузки | команда | MCUboot, `dfu/img_util` |
-| ui | input callback + `k_timer` | нажатия | `gpio-keys`, `zephyr,input-longpress` |
+| ota | своя очередь работ | команда MQTT, загрузка с веб-страницы, SMP | MCUboot, `dfu/flash_img`, MCUmgr по UDP |
+| watchdog | `task_wdt` | каналы потоков сети, датчиков, MQTT и системной очереди | `task_wdt`, аппаратный WDT как запасной |
+| ui | input callback + автомат `lib/ui` | нажатия | `gpio-keys`; длинное нажатие и дребезг считает `lib/ui` |
 | settings | библиотека | старт и изменения | `settings` поверх NVS; экраны в LittleFS |
 
 ## Wi-Fi и первичная настройка
@@ -94,6 +125,22 @@ JSON с экранами разбирается только при старте
 ![Кадр Mobitec](img/fw-mobitec-frame.svg)
 
 Формат взят из [`legacy/rpi/scripts/futaba.py`](../legacy/rpi/scripts/futaba.py). Встроенные шрифты табло не используются: весь экран передаётся тремя битмап-полосами через «шрифт» 0x77. Свои шрифты (цифры 6×11, мелкий 3×5) и иконки генерируются в C-заголовок из тех же описаний глифов, что в [симуляторе](../tools/sign-simulator/).
+
+## Консоль и REST API
+
+Команды оболочки (UART на плате, stdin/stdout на `native_sim`) — те же, что используют тесты:
+
+| Команда | Назначение |
+| --- | --- |
+| `ws status`, `ws vars`, `ws var set/clear` | состояние, переменные, подмена значения |
+| `ws sign pattern/show/stats/frame` | тестовые кадры, закрепить экран, статистика перекладки |
+| `ws sensors [read]`, `ws lamp [on/off]`, `ws led` | датчики и ввод-вывод |
+| `ws net`, `ws ap`, `ws ntp`, `ws time set`, `ws mqtt [publish]` | сеть, время, брокер |
+| `ws set <ключ> <значение>`, `ws settings`, `ws cfg status/factory/rollback` | настройки и набор экранов |
+| `ws metar fetch/status/parse` | резерв METAR, разбор сводки без сети |
+| `ws ota status/get/selftest`, `ws wdt status/hang` | обновление, самопроверка, проверка watchdog |
+
+REST API веб-страницы: `/api/status`, `/api/screens` (GET/PUT, `validate`, `rollback`, `factory`), `/api/catalog`, `/api/glyphs`, `/api/vars`, `/api/render`, `/api/display/{state,preview,pin}`, `/api/settings`, `/api/wifi/scan`, `/api/lamp`, `/api/ota`, `/api/ota/upload`. Запросы к API требуют Basic Auth, когда задан пароль; в режиме точки доступа страница открыта.
 
 ## Порядок работы
 

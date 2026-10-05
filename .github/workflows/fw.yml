@@ -39,6 +39,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           path: ${{ env.WS_REPO }}
+          submodules: recursive  # au/metar_cpp for the METAR suite
       - run: sudo apt-get install -y ninja-build gcovr
       - working-directory: ${{ env.WS_REPO }}
         run: fw/scripts/host-tests.sh
