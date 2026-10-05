@@ -233,9 +233,23 @@ int ws_metar_start(void)
 
 /* ---- shell ---- */
 
+/* The TLS handshake needs the metar queue's stack, not the shell's: the
+ * shell command hands the fetch over and waits for the result. */
+static int shell_fetch_ret;
+static K_SEM_DEFINE(shell_fetch_done, 0, 1);
+
+static void shell_fetch_fn(struct k_work *w)
+{
+	shell_fetch_ret = ws_metar_fetch_now();
+	k_sem_give(&shell_fetch_done);
+}
+static K_WORK_DEFINE(shell_fetch_work, shell_fetch_fn);
+
 static int cmd_fetch(const struct shell *sh, size_t argc, char **argv)
 {
-	int ret = ws_metar_fetch_now();
+	k_sem_reset(&shell_fetch_done);
+	k_work_submit_to_queue(&metar_q, &shell_fetch_work);
+	int ret = k_sem_take(&shell_fetch_done, K_SECONDS(60)) ? -ETIMEDOUT : shell_fetch_ret;
 
 	shell_print(sh, "fetch: %d", ret);
 	return ret ? -ENOEXEC : 0;

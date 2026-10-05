@@ -56,9 +56,10 @@ struct ws_ota {
 	char url[192];
 	char version[24];
 	uint8_t sha256[32];
-	size_t size;   /* bytes received */
-	size_t total;  /* expected size, 0 unknown */
-	int64_t since; /* when the state was entered */
+	bool check_sha; /* false: no hash given (web upload over HTTP, SMP) */
+	size_t size;    /* bytes received */
+	size_t total;   /* expected size, 0 unknown */
+	int64_t since;  /* when the state was entered */
 	int64_t deadline;
 	char error[64];      /* reason of the last failure (UTF-8) */
 	bool confirmed;      /* the running image is confirmed */

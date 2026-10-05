@@ -64,6 +64,7 @@ enum ws_ota_action ws_ota_request(struct ws_ota *o, const char *json, size_t len
 	    ws_unhex(sha, o->sha256, 32)) {
 		return fail(o, "sha256: 64 шестнадцатеричных знака", now);
 	}
+	o->check_sha = true;
 	o->version[0] = '\0';
 	ws_json_str(&j, ws_json_get(&j, 0, "version"), o->version, sizeof(o->version));
 	o->total = 0;
@@ -84,10 +85,11 @@ enum ws_ota_action ws_ota_upload_begin(struct ws_ota *o, enum ws_ota_source src,
 	o->url[0] = '\0';
 	o->version[0] = '\0';
 	o->total = total;
+	o->check_sha = sha256 != NULL; /* without one MCUboot checks the signature */
 	if (sha256) {
 		memcpy(o->sha256, sha256, 32);
 	} else {
-		memset(o->sha256, 0, 32); /* SMP: the image is checked by MCUboot */
+		memset(o->sha256, 0, 32);
 	}
 	start(o, src, now);
 	return WS_OTA_ACT_NONE;
@@ -137,12 +139,10 @@ enum ws_ota_action ws_ota_download_done(struct ws_ota *o, int err, int64_t now)
 
 enum ws_ota_action ws_ota_verified(struct ws_ota *o, const uint8_t sha256[32], int64_t now)
 {
-	static const uint8_t zero[32];
-
 	if (o->state != WS_OTA_VERIFY) {
 		return WS_OTA_ACT_NONE;
 	}
-	if (memcmp(o->sha256, zero, 32) != 0 && !ws_ct_equal(o->sha256, sha256, 32)) {
+	if (o->check_sha && !ws_ct_equal(o->sha256, sha256, 32)) {
 		return fail(o, "sha256 не совпадает", now);
 	}
 	enter(o, WS_OTA_READY, now);

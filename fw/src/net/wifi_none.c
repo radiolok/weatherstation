@@ -9,7 +9,6 @@
 LOG_MODULE_REGISTER(ws_wifi_none, LOG_LEVEL_INF);
 
 static ws_wifi_cb cb;
-static struct k_work_delayable connected_work;
 
 static void connected(struct k_work *w)
 {
@@ -22,20 +21,21 @@ static void connected(struct k_work *w)
 int ws_wifi_init(ws_wifi_cb callback)
 {
 	cb = callback;
-	k_work_init_delayable(&connected_work, connected);
 	return 0;
 }
 
 int ws_wifi_connect(const char *ssid, const char *psk)
 {
 	LOG_INF("native_sim: host network, connect to '%s' is simulated", ssid);
-	k_work_reschedule(&connected_work, K_MSEC(100));
+	/* Reported at once: the host network is always there. (A delayed
+	 * report through the system work queue never arrived in CI; the
+	 * network manager queues the event anyway.) */
+	connected(NULL);
 	return 0;
 }
 
 int ws_wifi_disconnect(void)
 {
-	k_work_cancel_delayable(&connected_work);
 	return 0;
 }
 

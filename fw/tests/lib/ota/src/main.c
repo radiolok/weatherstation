@@ -157,4 +157,19 @@ ZTEST(ota, test_confirmed_boot)
 	zassert_str_equal(ws_ota_state_name(WS_OTA_TESTING), "testing");
 }
 
+ZTEST(ota, test_zero_hash_is_still_checked)
+{
+	/* an all-zero sha256 in a request is a value to compare, not "none" */
+	uint8_t sha[32];
+
+	ws_unhex(SHA, sha, 32);
+	req("{\"url\":\"http://h/ws.bin\",\"sha256\":\""
+	    "0000000000000000000000000000000000000000000000000000000000000000\"}",
+	    WS_OTA_ACT_DOWNLOAD);
+	ws_ota_progress(&o, 10);
+	ws_ota_download_done(&o, 0, 101);
+	zassert_equal(ws_ota_verified(&o, sha, 102), WS_OTA_ACT_NONE);
+	zassert_equal(o.state, WS_OTA_FAILED);
+}
+
 ZTEST_SUITE(ota, NULL, NULL, before, NULL, NULL);

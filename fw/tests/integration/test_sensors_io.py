@@ -1,4 +1,6 @@
 """F5: emulated sensors reach the variables, button and lamp through gpio-emul."""
+import time
+
 from helpers import status, wait_until
 
 
@@ -44,6 +46,8 @@ def test_lamp_restored_after_reboot(dut):
 
 
 def test_short_press_pins_next_screen(dut):
+    # let the display pick its screen first (main at boot, then the rules)
+    time.sleep(1.5)
     first = status(dut)["screen"]
     dut.shell("ws emul button press 200")
     wait_until(lambda: status(dut)["reason"] == "кнопка", 5, what="debug pin")
