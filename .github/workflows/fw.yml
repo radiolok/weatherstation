@@ -43,6 +43,11 @@ jobs:
       - run: sudo apt-get install -y ninja-build gcovr
       - working-directory: ${{ env.WS_REPO }}
         run: fw/scripts/host-tests.sh
+      # bench sniffer (tools/sign-sniffer): golden frames through a file and a pty
+      - working-directory: ${{ env.WS_REPO }}
+        run: |
+          tools/sign-sniffer/build.sh
+          python3 -m unittest -v tools/sign-sniffer/test_signsniffer.py
 
   unit:
     runs-on: ubuntu-24.04

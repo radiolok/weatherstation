@@ -318,6 +318,46 @@ int ws_mobitec_decode(const uint8_t *in, size_t len, struct ws_frame *f, uint8_t
 	return (cs & 0xFF) == got ? 0 : -5;
 }
 
+void ws_mobitec_rx_init(struct ws_mobitec_rx *rx)
+{
+	memset(rx, 0, sizeof(*rx));
+}
+
+/* Shortest frame: FF addr A2, one band header (6 bytes), checksum, FF. */
+#define WS_RX_MIN_FRAME 11
+
+enum ws_mobitec_rx_result ws_mobitec_rx_feed(struct ws_mobitec_rx *rx, uint8_t b)
+{
+	if (rx->n == 0) {
+		if (b != 0xFF) {
+			rx->garbage++;
+			return WS_RX_NONE;
+		}
+		rx->buf[rx->n++] = b;
+		return WS_RX_NONE;
+	}
+	if (b == 0xFF) {
+		if (rx->n + 1 < WS_RX_MIN_FRAME) {
+			/* FF too early: what came before was not a frame, this FF may
+			 * start one */
+			rx->garbage += (uint32_t)rx->n;
+			rx->n = 1;
+			return WS_RX_NONE;
+		}
+		rx->buf[rx->n++] = b;
+		rx->len = rx->n;
+		rx->n = 0;
+		return WS_RX_FRAME;
+	}
+	if (rx->n >= sizeof(rx->buf)) {
+		rx->overflows++;
+		rx->n = 0;
+		return WS_RX_OVERFLOW;
+	}
+	rx->buf[rx->n++] = b;
+	return WS_RX_NONE;
+}
+
 struct ws_frame_diff ws_frame_diff(const struct ws_frame *a, const struct ws_frame *b)
 {
 	struct ws_frame_diff d = {0, 0};

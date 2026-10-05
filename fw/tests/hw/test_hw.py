@@ -9,7 +9,8 @@ import time
 
 import pytest
 
-from conftest import wait_kv
+import signsniffer
+from conftest import assert_clean_line, device_rows, wait_kv
 
 
 # ---- H1-H2: flashing, memory ------------------------------------------------
@@ -39,45 +40,132 @@ def test_h2_memory(dut, shell, operator):
 
 
 # ---- H3-H5: sign ------------------------------------------------------------
+# With --sign-port the line is read by the bench sniffer (virtual sign, stand A,
+# fw/docs/bench-virtual-sign.md) and these checks are automatic. Without it
+# they fall back to the operator. What only the real sign shows (orientation,
+# rustle of the dots) stays with the operator on stand B.
 
-def test_h3_frame_on_rs485(shell, kv, operator):
-    """H3: the frame on the line matches the reference bytes (4800 8N1, ~0.7 s)."""
-    shell.exec_command("ws sign pattern checker")
-    time.sleep(2)
-    st = kv("ws sign stats")
-    assert int(st["frames"]) >= 1
-    operator.step("Sniffer on the RS-485 line (tools/sign-sniffer): the checker frame decodes "
-                  "byte for byte like fw/tests/golden, 4800 8N1, one frame takes ~0.7 s")
-    shell.exec_command("ws sign pattern auto")
+# A frame of 330 bytes at 4800 8N1 takes 687 ms; USB adapters hand bytes over
+# in bursts, so the measured time is a little off.
+FRAME_MS = (550, 850)
+KEEPALIVE_S = 30
+
+
+def wait_rows(sign, rows, after, timeout=15):
+    return sign.wait_frame(lambda f: f.ok and f.rows == rows, after=after, timeout=timeout)
 
 
 @pytest.mark.parametrize("pattern", ["checker", "columns", "rows", "all", "none"])
-def test_h4_frame_on_sign(shell, operator, pattern):
-    """H4: orientation and bit order on the real sign."""
+def test_h3_frame_on_rs485(shell, kv, sign, operator, pattern):
+    """H3: the frame on the line is the reference frame byte for byte, 4800 8N1, ~0.7 s."""
+    rows = signsniffer.pattern_rows(pattern)
+    mark = sign.mark() if sign else 0
     shell.exec_command(f"ws sign pattern {pattern}")
-    time.sleep(2)
-    operator.step(f"The sign shows '{pattern}' correctly (orientation, bit order); "
-                  "a repeated frame does not rustle the dots")
-    shell.exec_command("ws sign pattern auto")
+    try:
+        if not sign:
+            time.sleep(2)
+            assert int(kv("ws sign stats")["frames"]) >= 1
+            operator.step(f"Sniffer on the RS-485 line: the '{pattern}' frame decodes byte for byte "
+                          "like the reference, 4800 8N1, one frame takes ~0.7 s")
+            return
+        f = wait_rows(sign, rows, mark)
+        assert f.addr == 0x06
+        assert f.raw == signsniffer.encode(rows), "bytes differ from the encoder's reference"
+        assert FRAME_MS[0] <= f.dur_ms <= FRAME_MS[1], f"frame took {f.dur_ms} ms"
+        assert_clean_line(sign.frames_since(mark), sign.line_errors_supported)
+    finally:
+        shell.exec_command("ws sign pattern auto")
 
 
-def test_h4_factory_screens(shell, kv, operator):
-    for sid in ("main", "stuffy", "rain", "evening", "noforecast"):
-        shell.exec_command(f"ws sign show {sid} 1")
-        time.sleep(3)
-        operator.step(f"Screen '{sid}' looks like in the web simulator")
-    shell.exec_command("ws sign pattern auto")
+def test_h3b_clean_line_on_boot(dut, shell, sign):
+    """H3b: reset and boot put nothing on the line but whole frames.
+
+    GPIO17 floats during reset; with DE tied high the driver repeats whatever
+    DI sees. Garbage here means DI needs a pull-up (10 kOhm to 3.3 V).
+    """
+    if not sign:
+        pytest.skip("needs the virtual sign: --sign-port")
+    mark = sign.mark()
+    dut.write(b"kernel reboot cold\n")
+    dut.readlines_until(regex=r"weatherstation \S+", timeout=60)
+    sign.wait_frame(lambda f: f.ok, after=mark, timeout=30)
+    time.sleep(5)
+    frames = sign.frames_since(mark)
+    assert frames[0].garbage == 0, f"{frames[0].garbage} bytes on the line before the first frame"
+    assert_clean_line(frames, sign.line_errors_supported)
 
 
-def test_h5_quiet_zone_changes(kv, operator):
-    """H5: 30 min in normal operation: only zones change, 20-30 columns at a time."""
-    if not operator.enabled:
-        pytest.skip("30 minute run: --hw-operator")
-    before = kv("ws sign stats")
-    time.sleep(30 * 60)
-    after = kv("ws sign stats")
-    assert int(after["frames"]) > int(before["frames"])
-    assert int(after["last_cols"]) <= 30, after
+@pytest.mark.parametrize("pattern", ["checker", "columns", "rows", "all", "none"])
+def test_h4_frame_on_sign(shell, sign, operator, pattern):
+    """H4: orientation and bit order on the real sign (stand B)."""
+    mark = sign.mark() if sign else 0
+    shell.exec_command(f"ws sign pattern {pattern}")
+    try:
+        if sign:
+            wait_rows(sign, signsniffer.pattern_rows(pattern), mark)
+        else:
+            time.sleep(2)
+        operator.step(f"The sign shows '{pattern}' correctly (orientation, bit order); "
+                      "a repeated frame does not rustle the dots")
+    finally:
+        shell.exec_command("ws sign pattern auto")
+
+
+@pytest.mark.parametrize("sid", ["main", "stuffy", "rain", "evening", "noforecast"])
+def test_h4_factory_screens(shell, sign, operator, sid):
+    """H4: every factory screen reaches the line exactly as the firmware drew it."""
+    mark = sign.mark() if sign else 0
+    shell.exec_command(f"ws sign show {sid} 1")
+    try:
+        if sign:
+            # the zones may turn between the frame and 'ws sign frame': retry
+            for _ in range(3):
+                f = sign.wait_frame(lambda f: f.ok, after=mark, timeout=15)
+                if f.rows == device_rows(shell):
+                    break
+                mark = f.n
+            else:
+                pytest.fail(f"screen '{sid}': the line differs from 'ws sign frame'")
+            assert_clean_line(sign.frames_since(mark), sign.line_errors_supported)
+        else:
+            time.sleep(3)
+        if operator.enabled:
+            operator.step(f"Screen '{sid}' on the sign looks like in the web simulator")
+    finally:
+        shell.exec_command("ws sign auto")
+
+
+def test_h5_quiet_zone_changes(shell, kv, sign, operator, pytestconfig):
+    """H5: in normal operation only the zones change, at most 30 columns at a
+    time, and the frame is repeated byte for byte every 30 s."""
+    minutes = pytestconfig.getoption("--hw-h5-minutes")
+    if not sign:
+        if not operator.enabled:
+            pytest.skip("needs the virtual sign (--sign-port) or --hw-operator")
+        before = kv("ws sign stats")
+        time.sleep(minutes * 60)
+        after = kv("ws sign stats")
+        assert int(after["frames"]) > int(before["frames"])
+        assert int(after["last_cols"]) <= 30, after
+        return
+    # pin the default screen so the rules do not switch screens during the run
+    shell.exec_command(f"ws sign show main {int(minutes) + 2}")
+    sign.wait_frame(lambda f: f.ok, timeout=15)
+    mark = sign.mark()
+    time.sleep(minutes * 60)
+    shell.exec_command("ws sign auto")
+    frames = sign.frames_since(mark)
+    assert len(frames) >= minutes * 60 / KEEPALIVE_S - 2, f"only {len(frames)} frames"
+    assert_clean_line(frames, sign.line_errors_supported)
+    changes = [f for f in frames if f.diff_cols]
+    repeats = [f for f in frames if f.diff_cols == 0]
+    assert all(f.same for f in repeats), "a repeated picture was sent with different bytes"
+    too_big = [(f.n, f.diff_cols) for f in changes if f.diff_cols > 30]
+    assert not too_big, f"changes wider than a zone (frame, columns): {too_big}"
+    gaps = [f.gap_ms / 1000 for f in frames if f.gap_ms is not None]
+    assert max(gaps) <= KEEPALIVE_S + 5, f"longest pause {max(gaps):.1f} s"
+    if minutes >= 2:
+        assert changes, "no zone changed during the run"
 
 
 # ---- H6-H7: sensors ---------------------------------------------------------
@@ -204,19 +292,29 @@ def test_h17_watchdog(dut, shell, kv):
 
 # ---- H18-H19: long runs -----------------------------------------------------
 
-def test_h18_interference(shell, kv, operator):
-    if not operator.enabled:
-        pytest.skip("stand B with the sign: --hw-operator")
+def test_h18_interference(shell, kv, sign, operator):
+    """H18: switching the lamp does not break frames or sensor reads."""
+    if not sign and not operator.enabled:
+        pytest.skip("needs the virtual sign (--sign-port) or stand B with --hw-operator")
     before = kv("ws sensors")
+    mark = sign.mark() if sign else 0
+    t0 = time.monotonic()
     for _ in range(50):
         shell.exec_command("ws lamp on")
         time.sleep(0.5)
         shell.exec_command("ws lamp off")
         time.sleep(0.5)
+    if sign and time.monotonic() - t0 < KEEPALIVE_S + 5:
+        time.sleep(KEEPALIVE_S + 5 - (time.monotonic() - t0))  # at least one frame on the line
     after = kv("ws sensors read")
     assert after["thp_errors"] == before["thp_errors"]
     assert after["co2_errors"] == before["co2_errors"]
-    operator.step("No broken frames on the sign while the lamp switched 50 times")
+    if sign:
+        frames = sign.frames_since(mark)
+        assert frames, "no frames on the line while the lamp switched"
+        assert_clean_line(frames, sign.line_errors_supported)
+    else:
+        operator.step("No broken frames on the sign while the lamp switched 50 times")
 
 
 def test_h19_long_run(shell, kv, operator):

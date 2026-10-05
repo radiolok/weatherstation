@@ -289,4 +289,78 @@ ZTEST(sign, test_decode_every_checksum)
 	zassert_equal(left, 0, "not every risky checksum value was produced");
 }
 
+static void checker(struct ws_frame *f, int phase)
+{
+	ws_frame_clear(f);
+	for (int y = 0; y < WS_H; y++) {
+		for (int x = 0; x < WS_W; x++) {
+			ws_frame_set(f, x, y, (x + y + phase) % 2 == 0);
+		}
+	}
+}
+
+/* Bench sniffer: a stream with garbage, back-to-back frames, a cut frame and
+ * an overflow splits into exactly the frames that were sent. */
+ZTEST(sign, test_rx_splits_stream)
+{
+	static uint8_t stream[4 * WS_MOBITEC_MAX + 600];
+	struct ws_frame f[3], got;
+	uint8_t enc[WS_MOBITEC_MAX];
+	size_t len = 0, l;
+	struct ws_mobitec_rx rx;
+	int frames = 0, overflows = 0;
+
+	checker(&f[0], 0);
+	checker(&f[1], 1);
+	ws_frame_clear(&f[2]);
+
+	/* boot noise, a frame, a frame right after it */
+	stream[len++] = 0x00;
+	stream[len++] = 0x55;
+	for (int i = 0; i < 2; i++) {
+		l = ws_mobitec_encode(&f[i], WS_MOBITEC_ADDR, enc, sizeof(enc));
+		memcpy(stream + len, enc, l);
+		len += l;
+	}
+	/* a frame cut in the middle: its tail is dropped as garbage up to the
+	 * next FF, which starts a new frame */
+	l = ws_mobitec_encode(&f[0], WS_MOBITEC_ADDR, enc, sizeof(enc));
+	memcpy(stream + len, enc, 40);
+	len += 40;
+	/* FF closes the cut frame (it fails to decode), the next FF opens a
+	 * run without FF longer than any frame */
+	stream[len++] = 0xFF;
+	stream[len++] = 0xFF;
+	for (int i = 0; i < WS_MOBITEC_MAX + 20; i++) {
+		stream[len++] = 0x20;
+	}
+	l = ws_mobitec_encode(&f[2], WS_MOBITEC_ADDR, enc, sizeof(enc));
+	memcpy(stream + len, enc, l);
+	len += l;
+
+	ws_mobitec_rx_init(&rx);
+	for (size_t i = 0; i < len; i++) {
+		enum ws_mobitec_rx_result r = ws_mobitec_rx_feed(&rx, stream[i]);
+
+		if (r == WS_RX_OVERFLOW) {
+			overflows++;
+		} else if (r == WS_RX_FRAME) {
+			uint8_t addr = 0;
+			int rc = ws_mobitec_decode(rx.buf, rx.len, &got, &addr);
+
+			if (rc != 0) {
+				continue; /* the cut frame glued to the next FF */
+			}
+			zassert_equal(addr, WS_MOBITEC_ADDR);
+			zassert_true(frames < 3, "too many frames");
+			zassert_mem_equal(got.bits, f[frames].bits, sizeof(got.bits), "frame %d",
+					  frames);
+			frames++;
+		}
+	}
+	zassert_equal(frames, 3, "frames %d", frames);
+	zassert_equal(overflows, 1);
+	zassert_true(rx.garbage >= 2, "garbage %u", rx.garbage);
+}
+
 ZTEST_SUITE(sign, NULL, NULL, NULL, NULL, NULL);

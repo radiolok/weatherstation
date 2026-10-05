@@ -1,7 +1,10 @@
 # Twister entries of the application itself (the fw/lib suites live in
 # fw/tests/lib). Hardware checks H1-H19 (implementation plan) on a board:
 #   west twister -T fw -p esp32s3_devkitc/esp32s3/procpu --device-testing \
-#     --device-serial /dev/ttyUSB0 --tag hw -- --hw-operator   # with prompts
+#     --device-serial /dev/ws-console --tag hw \
+#     --pytest-args="--sign-port=/dev/ws-rs485" \
+#     --pytest-args="--hw-operator" --pytest-args="-s"   # with prompts
+# The sign line is read by tools/sign-sniffer (fw/docs/bench-virtual-sign.md).
 tests:
   ws.app.native:
     build_only: true

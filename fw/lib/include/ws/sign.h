@@ -107,6 +107,28 @@ struct ws_frame_diff {
 
 struct ws_frame_diff ws_frame_diff(const struct ws_frame *a, const struct ws_frame *b);
 
+/* Splits a raw RS-485 byte stream into Mobitec frames (FF ... FF). Used by
+ * the bench sniffer (tools/sign-sniffer). 0xFF only appears as the first and
+ * the last byte of a frame (the checksum is escaped), so a frame is every
+ * FF ... FF run longer than the header. Bytes outside frames are counted as
+ * garbage. */
+struct ws_mobitec_rx {
+	uint8_t buf[WS_MOBITEC_MAX + 8];
+	size_t n;         /* bytes of the frame being received */
+	size_t len;       /* length of the last complete frame in buf */
+	uint32_t garbage; /* bytes outside frames */
+	uint32_t overflows;
+};
+
+enum ws_mobitec_rx_result {
+	WS_RX_NONE,     /* need more bytes */
+	WS_RX_FRAME,    /* buf[0..len) holds a complete FF ... FF frame */
+	WS_RX_OVERFLOW, /* frame longer than WS_MOBITEC_MAX + 8 was dropped */
+};
+
+void ws_mobitec_rx_init(struct ws_mobitec_rx *rx);
+enum ws_mobitec_rx_result ws_mobitec_rx_feed(struct ws_mobitec_rx *rx, uint8_t b);
+
 /* Named bitmaps from tools/sign-simulator/core.js. */
 enum ws_cond {
 	WS_COND_CLEAR,

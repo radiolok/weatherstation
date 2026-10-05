@@ -40,14 +40,15 @@
 
 | Набор | Где | Запуск локально | В CI |
 | --- | --- | --- | --- |
-| ztest `fw/tests/lib/*` — 14 наборов, 107 случаев | ПК (ASan/UBSan) | `fw/scripts/host-tests.sh [набор]` | `host` |
+| ztest `fw/tests/lib/*` — 14 наборов, 108 случаев | ПК (ASan/UBSan) | `fw/scripts/host-tests.sh [набор]` | `host` |
 | то же под twister, покрытие gcovr | `native_sim` | `fw/scripts/unit.sh` | `unit` |
 | эталоны: шрифты, кадры табло и экранов не устарели | node + twister | `fw/scripts/golden.sh` | `golden`, `lint` |
 | рендерер браузера и бюджет веб-страницы | node | `node --test fw/web/test/*.test.js` | `web` |
 | Playwright `fw/tests/web` — 12 | Chromium | `fw/scripts/web.sh --mock` (без Zephyr) или `fw/scripts/web.sh` | `web` (макет и `native_sim`) |
 | pytest `fw/tests/integration` — 32 | `native_sim` + Mosquitto | `docker run -p 1883:1883 -v $PWD/fw/tests/integration/mosquitto.conf:/mosquitto/config/mosquitto.conf eclipse-mosquitto:2`, затем `fw/scripts/integration.sh` | `integration` |
 | сборка ESP32-S3 + MCUboot, подписанный образ, размеры | — | `fw/scripts/build-target.sh` | `target`, `size` |
-| H1–H19 `fw/tests/hw` — 20 тестов | плата | `west twister -T fw -p esp32s3_devkitc/esp32s3/procpu --device-testing --device-serial /dev/ttyUSB0 --tag hw -- --hw-operator -s` | — |
+| снифер виртуального табло `tools/sign-sniffer` — 9 | ПК, псевдотерминал | `python3 -m unittest -v tools/sign-sniffer/test_signsniffer.py` | `host` |
+| H1–H19 `fw/tests/hw` — 21 тест | плата, USB-RS485 | `west twister -T fw -p esp32s3_devkitc/esp32s3/procpu --device-testing --device-serial /dev/ws-console --tag hw --pytest-args="--sign-port=/dev/ws-rs485" --pytest-args="--hw-operator" --pytest-args="-s"` | — |
 
 Зависимости pytest — в `fw/tests/integration/requirements.txt`: pytest, paho-mqtt, playwright, cryptography, smpclient.
 
@@ -131,15 +132,16 @@
 
 ## Проверки на железе H1–H19 — не выполнены
 
-Тесты в `fw/tests/hw/test_hw.py` автоматически делают то, что доступно из консоли, а измерения и осмотр спрашивают у оператора (`--hw-operator -s`; без флага такие шаги пропускаются с описанием процедуры).
+Тесты в `fw/tests/hw/test_hw.py` автоматически делают то, что доступно из консоли, а измерения и осмотр спрашивают у оператора (`--hw-operator -s`; без флага такие шаги пропускаются с описанием процедуры). С `--sign-port` кадры на линии принимает виртуальное табло — USB-RS485 адаптер и снифер, см. [стенд с виртуальным табло](bench-virtual-sign.md).
 
 | | Проверка | Что делает тест | Что остаётся оператору |
 | --- | --- | --- | --- |
 | H1 | прошивка и отладка | загрузка из MCUboot, образ подтверждён | OpenOCD: остановка, шаг, точка останова |
 | H2 | память | запас стеков ≥ 25 % (`kernel thread stacks`) | флеш 16 МБ и PSRAM в логе старта |
-| H3 | кадр на RS-485 | `ws sign pattern checker`, кадры ушли | снифер на линии, 4800 8N1, ≈ 0.7 с |
-| H4 | кадр на табло | тестовые узоры и все заводские экраны | ориентация, порядок бит, нет шороха при повторе |
-| H5 | тихая смена зон | 30 мин, `ws sign stats`, ≤ 30 столбцов | — |
+| H3 | кадр на RS-485 | пять узоров; снифер: байты как у кодера, адрес 06, 550–850 мс, линия чистая | без снифера — подтвердить кадр на линии |
+| H3b | чистая линия при старте | `kernel reboot cold`, снифер: до первого кадра ни байта | — (нужен снифер) |
+| H4 | кадр на табло | снифер: пять заводских экранов на линии совпадают с `ws sign frame` | на табло: ориентация, порядок бит, нет шороха при повторе |
+| H5 | тихая смена зон | снифер 30 мин: повтор байт в байт, ≤ 30 столбцов, пауза ≤ 35 с | — |
 | H6 | BME280 | чтение без ошибок | эталонные t и RH, допуск 0.5 °C / 5 % |
 | H7 | MH-Z19B | чтение, нет ошибок контрольной суммы | ≈ 420 ppm после проветривания |
 | H8 | ключ подсветки | `ws lamp on/off` | ток, просадка 5 В, нагрев транзистора |
@@ -152,7 +154,7 @@
 | H15 | MQTT и HA | подключение к `--hw-broker` | сущности и команды в HA за 1 с |
 | H16 | OTA | `ws ota get` подписанного образа (`--hw-ota-url/--hw-ota-sha`) | перестановка, обрыв питания, откат плохого образа, `smpmgr` |
 | H17 | watchdog | `ws wdt hang`, сброс и повторный старт | — |
-| H18 | помехи | 50 переключений лампы, счётчики ошибок датчиков | кадры без сбоев |
+| H18 | помехи | 50 переключений лампы, счётчики ошибок датчиков; снифер: кадры без сбоев | без снифера — кадры без сбоев на табло |
 | H19 | 72 ч | состояние сети и MQTT каждые 10 мин | сравнение кучи в начале и конце |
 
 ## Что посмотреть первым после CI
