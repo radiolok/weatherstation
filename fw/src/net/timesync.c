@@ -14,7 +14,6 @@
 
 LOG_MODULE_REGISTER(ws_time, LOG_LEVEL_INF);
 
-#define DEFAULT_SERVER "pool.ntp.org"
 #define RETRY_S        30
 
 static K_SEM_DEFINE(sync_now, 0, 1);
@@ -44,7 +43,14 @@ static void time_thread(void *a, void *b, void *c)
 	for (;;) {
 		ws_net_wait_online(K_FOREVER);
 		ws_app_settings_get(&s);
-		int r = try_server(s.ntp1[0] ? s.ntp1 : DEFAULT_SERVER);
+		const char *first = s.ntp1[0] ? s.ntp1 : CONFIG_WS_NTP_DEFAULT_SERVER;
+
+		if (!first[0] && !s.ntp2[0]) {
+			/* no server at all (native_sim tests): wait for a setting */
+			k_sem_take(&sync_now, K_FOREVER);
+			continue;
+		}
+		int r = first[0] ? try_server(first) : -ENOENT;
 
 		if (r < 0) {
 			r = try_server(s.ntp2);

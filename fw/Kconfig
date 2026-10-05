@@ -32,6 +32,14 @@ config WS_HTTP_PORT
 	default 8080 if BOARD_NATIVE_SIM
 	default 80
 
+config WS_NTP_DEFAULT_SERVER
+	string "NTP server used while ntp.server1 is empty"
+	default "pool.ntp.org"
+	depends on WS_NET
+	help
+	  Empty on native_sim: the tests set the clock themselves and use a
+	  local SNTP server, a sync with the internet would overwrite it.
+
 config WS_MQTT
 	bool "MQTT and Home Assistant discovery"
 	default y

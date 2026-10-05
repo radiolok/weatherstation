@@ -130,7 +130,7 @@ static int cmd_sensors(const struct shell *sh, size_t argc, char **argv)
 		uint32_t before = reads;
 
 		k_sem_give(&read_now);
-		for (int i = 0; i < 50 && reads == before; i++) {
+		for (int i = 0; i < 150 && reads == before; i++) {
 			k_msleep(20);
 		}
 	}
