@@ -81,7 +81,8 @@ struct route {
 	size_t cap;
 	bool overflow;
 	bool holds_json_buf;
-	char small[512]; /* bodies of the small requests (lamp, pin...); big ones use the JSON buffer */
+	/* bodies of the small requests (lamp, pin...); big ones use the JSON buffer */
+	char small[512];
 };
 
 void api_error(struct api_resp *r, int status, const char *msg)
