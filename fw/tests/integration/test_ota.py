@@ -141,8 +141,7 @@ def test_watchdog_catches_a_hung_thread(dut):
     st = dut.shell_kv("ws wdt status")
     assert st["running"] == "yes"
     assert any("ws_net" in v for v in st.values()), st
-    dut.proc.stdin.write(b"ws wdt hang 20\n")
-    dut.proc.stdin.flush()
+    dut.write("ws wdt hang 20\n")
     dut.wait_for(r"watchdog: thread 'shell-test' hung", timeout=10)
     dut.wait_for(r"weatherstation \S+", timeout=30)
 

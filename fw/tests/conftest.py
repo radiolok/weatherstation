@@ -74,6 +74,15 @@ class Dut:
                 self.lines.put(line)
         self.lines.put(None)
 
+    def write(self, text):
+        """Types text in pieces: the UART RX ring buffer of the shell is
+        small, a long line written at once loses characters."""
+        data = text.encode()
+        for i in range(0, len(data), 32):
+            self.proc.stdin.write(data[i:i + 32])
+            self.proc.stdin.flush()
+            time.sleep(0.01)
+
     def kill(self, sig=None):
         """Hard stop, like pulling the plug (no clean MQTT disconnect)."""
         if self.proc and self.proc.poll() is None:
@@ -139,8 +148,7 @@ class Dut:
         The echo of a long command is wrapped by the shell over several
         lines, so the echo is found in the concatenated text."""
         self.drain()
-        self.proc.stdin.write((command + "\n").encode())
-        self.proc.stdin.flush()
+        self.write(command + "\n")
         out = []
         echo = ""
         deadline = time.monotonic() + timeout
@@ -193,3 +201,15 @@ def dut(zephyr_exe, pytestconfig, request, tmp_path):
     d.wait_for(r"weatherstation \S+", timeout=15)
     yield d
     d.stop()
+    rep = getattr(request.node, "rep_call", None)
+    if rep is not None and rep.failed:
+        # the device log in the CI output, next to the failure
+        print(f"---- zephyr.exe console, last 150 of {len(d.history)} lines ----")
+        print("\n".join(d.history[-150:]))
+
+
+@pytest.hookimpl(tryfirst=True, hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    outcome = yield
+    rep = outcome.get_result()
+    setattr(item, "rep_" + rep.when, rep)
