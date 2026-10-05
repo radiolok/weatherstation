@@ -55,6 +55,7 @@ def base_url(backend, pytestconfig, request, tmp_path):
     dut = request.getfixturevalue("dut")
     port = pytestconfig.getoption("--http-port")
     dut.wait_for(r"web server on port \d+: 0", timeout=15)
+    dut.shell("ws fds")  # descriptor table in the log (NSOS diagnostics)
     yield f"http://127.0.0.1:{port}"
 
 
@@ -71,7 +72,7 @@ def browser():
 
 
 @pytest.fixture
-def page(browser, base_url):
+def page(browser, base_url, backend, request):
     ctx = browser.new_context(viewport={"width": 1400, "height": 900})
     pg = ctx.new_page()
     errors = []
@@ -79,6 +80,8 @@ def page(browser, base_url):
     pg.on("dialog", lambda d: d.accept())
     pg.goto(base_url + "/")
     pg.wait_for_selector("body.ready", timeout=15000)
+    if backend == "device":
+        request.getfixturevalue("dut").shell("ws fds")
     pg.errors = errors
     yield pg
     ctx.close()

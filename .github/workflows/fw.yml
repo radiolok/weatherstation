@@ -119,12 +119,12 @@ jobs:
             -v "$PWD/fw/tests/integration/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro" \
             eclipse-mosquitto:2
       - run: |
-          sudo apt-get install -y strace
+          sudo apt-get install -y gdb
           pip install -r ${{ env.WS_REPO }}/fw/tests/integration/requirements.txt
       - name: native_sim + pytest (MQTT, HTTP API, METAR over HTTPS, NTP)
         working-directory: ${{ env.WS_REPO }}
         env:
-          WS_STRACE: "1" # host socket calls in the failure output (NSOS diagnostics)
+          WS_GDB: "1" # thread backtraces when the device hangs (diagnostics)
         run: fw/scripts/integration.sh
       - name: Broker log
         if: failure()

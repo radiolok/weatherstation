@@ -126,6 +126,7 @@ class Dut:
         while True:
             left = deadline - time.monotonic()
             if left <= 0:
+                self.gdb_dump(f"no {pattern!r}")
                 raise TimeoutError(f"no line matching {pattern!r} in {timeout} s")
             try:
                 line = self.lines.get(timeout=left)
@@ -141,6 +142,29 @@ class Dut:
         if LOG_LINE.match(line):
             self.backlog.append(line)
             del self.backlog[:-500]
+
+    def gdb_dump(self, why):
+        """Once per process: backtraces of all threads into the history
+        (WS_GDB=1 in CI; every Zephyr thread of native_sim is a host thread,
+        so this shows where each one waits)."""
+        if not os.environ.get("WS_GDB") or getattr(self, "_gdb_done", False):
+            return
+        self._gdb_done = True
+        if not self.proc or self.proc.poll() is not None or not shutil.which("gdb"):
+            return
+        cmd = ["gdb", "-p", str(self.proc.pid), "-batch", "-nx", "-ex", "set pagination off",
+               "-ex", "thread apply all bt 25"]
+        if os.geteuid() != 0 and shutil.which("sudo"):
+            cmd = ["sudo", "-n", *cmd]
+        try:
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+            text = r.stdout + r.stderr
+        except Exception as e:  # noqa: BLE001 - diagnostics only
+            text = str(e)
+        now = time.monotonic() - self.t0
+        for line in [f"---- gdb ({why}) ----", *text.splitlines(), "---- end gdb ----"]:
+            self.history_t.append(now)
+            self.history.append(line)
 
     def drain(self):
         while True:
@@ -166,6 +190,7 @@ class Dut:
         while True:
             left = deadline - time.monotonic()
             if left <= 0:
+                self.gdb_dump(f"shell command {command!r} hangs")
                 raise TimeoutError(f"shell command {command!r} did not finish: {out}")
             try:
                 line = self.lines.get(timeout=left)
@@ -213,6 +238,7 @@ def dut(zephyr_exe, pytestconfig, request, tmp_path):
     rep = getattr(request.node, "rep_call", None)
     if rep is not None and rep.failed and d.proc.poll() is None:
         # thread states (who waits on what) for the CI output
+        d.gdb_dump("test failed")
         for cmd in ("kernel uptime", "kernel thread list", "ws status", "ws net"):
             try:
                 d.shell(cmd, timeout=5)
@@ -222,9 +248,9 @@ def dut(zephyr_exe, pytestconfig, request, tmp_path):
     d.stop()
     if rep is not None and rep.failed:
         # the device log in the CI output, next to the failure
-        print(f"---- zephyr.exe console, last 250 of {len(d.history)} lines ----")
+        print(f"---- zephyr.exe console, last 700 of {len(d.history)} lines ----")
         # wall time next to the uptime of the log lines: is simulated time moving?
-        rows = list(zip(d.history_t, d.history))[-250:]
+        rows = list(zip(d.history_t, d.history))[-700:]
         print("\n".join(f"{t:8.3f} {line}" for t, line in rows))
         if d.strace_path and d.strace_path.exists():
             tail = d.strace_path.read_text(errors="replace").splitlines()[-120:]

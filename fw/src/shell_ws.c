@@ -8,6 +8,9 @@
 
 #include <zephyr/kernel.h>
 #include <zephyr/shell/shell.h>
+#ifdef CONFIG_ZVFS
+#include <zephyr/sys/fdtable.h>
+#endif
 
 #include <ws/json.h>
 #include <ws/sign.h>
@@ -270,6 +273,23 @@ static int cmd_settings(const struct shell *sh, size_t argc, char **argv)
 	}
 	return 0;
 }
+
+#ifdef CONFIG_ZVFS
+/* Open descriptors (diagnostics of socket problems on native_sim) */
+static int cmd_fds(const struct shell *sh, size_t argc, char **argv)
+{
+	for (int fd = 0; fd < CONFIG_ZVFS_OPEN_MAX; fd++) {
+		const struct fd_op_vtable *vt = NULL;
+		void *obj = zvfs_get_fd_obj_and_vtable(fd, &vt, NULL);
+
+		if (obj) {
+			shell_print(sh, "fd %d: obj %p vtable %p", fd, obj, (const void *)vt);
+		}
+	}
+	return 0;
+}
+SHELL_SUBCMD_ADD((ws), fds, NULL, "Open file descriptors", cmd_fds, 1, 0);
+#endif
 
 SHELL_SUBCMD_ADD((ws), status, NULL, "Device status", cmd_status, 1, 0);
 SHELL_SUBCMD_ADD((ws), vars, NULL, "All variables", cmd_vars, 1, 0);
