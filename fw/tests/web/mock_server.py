@@ -35,7 +35,9 @@ class State:
     def __init__(self, wsapi):
         self.wsapi = str(wsapi)
         self.lock = threading.Lock()
+        # like a fresh device: the factory set and no saved versions yet
         self.screens = FACTORY.read_text(encoding="utf-8")
+        self.saved = False
         self.previous = None
         self.settings = {
             "wifi.ssid": "home", "wifi.psk_set": True, "mqtt.host": "192.168.1.10", "mqtt.port": 1883,
@@ -86,7 +88,8 @@ class Handler(BaseHTTPRequestHandler):
             return
         with st.lock:
             if path == "/api/screens":
-                self.send(200, st.screens)
+                # the device answers with the canonical form of the active set
+                self.send(200, st.run("canon", st.screens)[1])
             elif path == "/api/catalog":
                 self.send(200, st.run("catalog", st.screens)[1])
             elif path == "/api/glyphs":
@@ -130,7 +133,9 @@ class Handler(BaseHTTPRequestHandler):
                 if rc:
                     self.send(422, out)
                     return
-                st.previous, st.screens = st.screens, data
+                # current -> previous only when a current file exists
+                st.previous = st.screens if st.saved else st.previous
+                st.screens, st.saved = data, True
                 self.json(200, {"ok": True})
             elif path == "/api/screens/rollback":
                 if not st.previous:
@@ -139,7 +144,8 @@ class Handler(BaseHTTPRequestHandler):
                 st.screens, st.previous = st.previous, st.screens
                 self.json(200, {"ok": True})
             elif path == "/api/screens/factory":
-                st.previous, st.screens = st.screens, FACTORY.read_text(encoding="utf-8")
+                st.previous = st.screens if st.saved else st.previous
+                st.screens, st.saved = FACTORY.read_text(encoding="utf-8"), True
                 self.json(200, {"ok": True})
             elif path in ("/api/display/preview", "/api/display/pin"):
                 self.json(200, {"ok": True})

@@ -32,7 +32,12 @@
     const r = await fetch(path, o);
     let body = null;
     const text = await r.text();
-    try { body = text ? JSON.parse(text) : null; } catch (e) { body = { error: text }; }
+    try { body = text ? JSON.parse(text) : null; } catch (e) {
+      // a broken answer is an error even with HTTP 200
+      const err = new Error(`${path}: неверный JSON (${e.message})`);
+      err.status = r.status; err.body = { error: text };
+      throw err;
+    }
     if (!r.ok) {
       const err = new Error((body && (body.error || (body.errors && body.errors.map((x) => `${x.path}: ${x.msg}`).join('; ')))) || `HTTP ${r.status}`);
       err.status = r.status; err.body = body;

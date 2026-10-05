@@ -159,11 +159,15 @@ def test_status_page(page):
     assert page.locator("#status-list dt", has_text="Версия").count() == 1
 
 
-def test_factory_and_rollback(page, base_url):
-    page.locator("#palette .pal-item").count()  # page ready
+def test_save_and_rollback(page, base_url):
+    """Two saves, then the rollback returns the first one (a fresh device has
+    no previous version before its second save)."""
     page.evaluate("WSApp.state.cfg.screens[0].name = 'X'")
     click_msg(page, "#btn-save")
+    page.evaluate("WSApp.state.cfg.screens[0].name = 'Y'")
+    click_msg(page, "#btn-save")
+    assert get_json(base_url, "/api/screens")["screens"][0]["name"] == "Y"
+    text = click_msg(page, "#btn-rollback")
+    assert "предыдущая" in text
     assert get_json(base_url, "/api/screens")["screens"][0]["name"] == "X"
-    page.click("#btn-rollback")
-    page.wait_for_function("document.querySelector('#msg').textContent.includes('предыдущая')")
-    assert get_json(base_url, "/api/screens")["screens"][0]["name"] == "Душно"
+    assert page.evaluate("WSApp.state.cfg.screens[0].name") == "X"

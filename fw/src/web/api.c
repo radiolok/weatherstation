@@ -185,22 +185,23 @@ void api_glyphs(int m, char *b, size_t n, struct api_resp *r)
 		api_error(r, HTTP_500_INTERNAL_SERVER_ERROR, "нет шрифтов");
 		return;
 	}
+	/* continue the object: ,"user_pictos":[...]} */
+	static const char key[] = ",\"user_pictos\":";
+	size_t head = base - 1 + sizeof(key) - 1;
+
 	memcpy(r->buf, ws_glyphs_json, base - 1);
+	memcpy(r->buf + base - 1, key, sizeof(key) - 1);
 	struct ws_jw w;
 
-	ws_jw_init(&w, r->buf + base - 1, r->cap - base + 1);
-	/* continue the object: ,"user_pictos":[...]} */
-	ws_jw_raw(&w, ",\"user_pictos\":[", 16);
+	/* one byte kept for the closing brace */
+	ws_jw_init(&w, r->buf + head, r->cap - head - 1);
+	ws_jw_arr(&w);
 	ws_app_lock();
 	struct ws_config *c = ws_app_cfg();
 
 	for (int i = 0; i < c->n_pictos; i++) {
 		char hex[8];
 
-		if (i) {
-			ws_jw_raw(&w, ",", 1);
-		}
-		w.first |= 1u << w.depth; /* raw comma written above */
 		ws_jw_obj(&w);
 		ws_jw_kstr(&w, "name", c->pictos[i].name);
 		ws_jw_kint(&w, "size", c->pictos[i].bm.w);
@@ -214,13 +215,14 @@ void api_glyphs(int m, char *b, size_t n, struct api_resp *r)
 		ws_jw_obj_end(&w);
 	}
 	ws_app_unlock();
-	ws_jw_raw(&w, "]}", 2);
+	ws_jw_arr_end(&w);
 	if (!w.ok) {
 		api_error(r, HTTP_500_INTERNAL_SERVER_ERROR, "шрифты не помещаются");
 		return;
 	}
+	r->buf[head + w.pos] = '}';
 	r->status = HTTP_200_OK;
-	r->len = base - 1 + w.pos;
+	r->len = head + w.pos + 1;
 }
 
 void api_vars(int m, char *b, size_t n, struct api_resp *r)
