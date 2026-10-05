@@ -5,6 +5,7 @@ set(WS_WEB_SRC ${CMAKE_CURRENT_LIST_DIR}/src)
 set(WS_WEB_FILES index.html app.js render.js style.css)
 
 function(ws_web_resources target)
+  zephyr_linker_sources(SECTIONS ${CMAKE_CURRENT_FUNCTION_LIST_DIR}/sections-rom.ld)
   set(gen ${ZEPHYR_BINARY_DIR}/include/generated)
   foreach(f ${WS_WEB_FILES})
     generate_inc_file_for_target(${target} ${WS_WEB_SRC}/${f} ${gen}/${f}.gz.inc --gzip)
