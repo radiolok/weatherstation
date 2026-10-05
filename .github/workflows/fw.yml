@@ -151,11 +151,13 @@ jobs:
           manifest-file-name: fw/west.yml
           toolchains: xtensa-espressif_esp32s3_zephyr-elf
       - run: |
-          sudo apt-get install -y ninja-build
+          sudo apt-get install -y ninja-build strace
           pip install -r ${{ env.WS_REPO }}/fw/tests/integration/requirements.txt
           python -m playwright install --with-deps chromium
       - name: Node tests of the web renderer, Playwright against the mock and native_sim
         working-directory: ${{ env.WS_REPO }}
+        env:
+          WS_STRACE: "1" # host socket calls in the failure output (NSOS diagnostics)
         run: fw/scripts/web.sh
       - uses: actions/upload-artifact@v4
         if: failure()

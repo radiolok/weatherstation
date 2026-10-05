@@ -7,6 +7,7 @@ the network: native_sim uses host sockets (NSOS), so the HTTP server listens
 on a host port and MQTT connects to a broker on the host.
 """
 import os
+import shutil
 import queue
 import re
 import subprocess
@@ -39,6 +40,7 @@ class Dut:
         self.log_path = Path(log_path)
         self.args = list(args)
         self.proc = None
+        self.strace_path = None
         self.lines = queue.Queue()
         self.history = []
         self.backlog = []
@@ -51,6 +53,11 @@ class Dut:
         self.log_path.parent.mkdir(parents=True, exist_ok=True)
         self._log = open(self.log_path, "a", encoding="utf-8", errors="replace")
         cmd = [self.exe, f"--flash={self.workdir / 'flash.bin'}", *self.args, *extra_args]
+        if os.environ.get("WS_STRACE") and shutil.which("strace"):
+            # host socket calls of NSOS, printed with a failure (CI diagnostics)
+            self.strace_path = self.workdir / "strace.txt"
+            cmd = ["strace", "-f", "--kill-on-exit", "-tt", "-o", str(self.strace_path), "-e",
+                   "trace=socket,accept,accept4,close,dup,epoll_ctl,shutdown,connect", *cmd]
         self._log.write(f"\n### start {' '.join(cmd)}\n")
         self.proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                      stderr=subprocess.STDOUT, cwd=self.workdir, bufsize=0)
@@ -213,6 +220,10 @@ def dut(zephyr_exe, pytestconfig, request, tmp_path):
         # the device log in the CI output, next to the failure
         print(f"---- zephyr.exe console, last 250 of {len(d.history)} lines ----")
         print("\n".join(d.history[-250:]))
+        if d.strace_path and d.strace_path.exists():
+            tail = d.strace_path.read_text(errors="replace").splitlines()[-120:]
+            print("---- strace, last 120 lines ----")
+            print("\n".join(tail))
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
