@@ -4,6 +4,7 @@
  * access point mode, the API is open so the device can be set up.
  */
 #include <errno.h>
+#include <stdlib.h>
 #include <string.h>
 #include <strings.h>
 
@@ -251,6 +252,8 @@ API(lamp, "/api/lamp", POST, api_lamp, false);
 /* ---- firmware upload: streamed into slot 1, never buffered ---- */
 
 HTTP_SERVER_REGISTER_HEADER_CAPTURE(ws_hdr_sha, "X-Image-Sha256");
+/* the HTTP/1 server does not fill client->content_len: read the header */
+HTTP_SERVER_REGISTER_HEADER_CAPTURE(ws_hdr_len, "Content-Length");
 
 static struct {
 	bool active;
@@ -283,7 +286,9 @@ static void upload_start(struct http_client_ctx *client, const struct http_reque
 		up.status = HTTP_400_BAD_REQUEST;
 		return;
 	}
-	int ret = ws_ota_web_begin(client->content_len, hex ? sha : NULL);
+	const char *cl = header(req, "Content-Length");
+	size_t total = cl ? strtoul(cl, NULL, 10) : 0;
+	int ret = ws_ota_web_begin(total, hex ? sha : NULL);
 
 	if (ret) {
 		up.failed = true;

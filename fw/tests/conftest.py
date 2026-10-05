@@ -17,7 +17,9 @@ from pathlib import Path
 import pytest
 
 PROMPT = "uart:~$ "
-ANSI = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
+ANSI = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]")
+# "[00:00:01.234,000] <inf> module: text"
+LOG_LINE = re.compile(r"^\[\d{2}:\d{2}:\d{2}\.\d{3},\d{3}\] <")
 
 
 def pytest_addoption(parser):
@@ -39,6 +41,7 @@ class Dut:
         self.proc = None
         self.lines = queue.Queue()
         self.history = []
+        self.backlog = []
         self._reader = None
         self._log = None
 
@@ -90,8 +93,16 @@ class Dut:
 
     # -- console --------------------------------------------------------
     def wait_for(self, pattern, timeout=10.0):
-        """Waits for a console line matching `pattern`, returns the match."""
+        """Waits for a console line matching `pattern`, returns the match.
+
+        Log lines that shell() read past are kept in a backlog and searched
+        first, so a log printed while a command ran is not lost."""
         rx = re.compile(pattern)
+        while self.backlog:
+            line = self.backlog.pop(0)
+            m = rx.search(line)
+            if m:
+                return m
         deadline = time.monotonic() + timeout
         while True:
             left = deadline - time.monotonic()
@@ -107,19 +118,31 @@ class Dut:
             if m:
                 return m
 
+    def _keep(self, line):
+        if LOG_LINE.match(line):
+            self.backlog.append(line)
+            del self.backlog[:-500]
+
     def drain(self):
         while True:
             try:
-                self.lines.get_nowait()
+                line = self.lines.get_nowait()
             except queue.Empty:
                 return
+            if line is not None:
+                self._keep(line)
 
     def shell(self, command, timeout=5.0):
-        """Runs a shell command, returns its output lines (without echo/prompt)."""
+        """Runs a shell command, returns its output lines (without echo,
+        prompt and log lines; log lines go to the backlog for wait_for).
+
+        The echo of a long command is wrapped by the shell over several
+        lines, so the echo is found in the concatenated text."""
         self.drain()
         self.proc.stdin.write((command + "\n").encode())
         self.proc.stdin.flush()
         out = []
+        echo = ""
         deadline = time.monotonic() + timeout
         seen_echo = False
         while True:
@@ -132,15 +155,17 @@ class Dut:
                 continue
             if line is None:
                 raise RuntimeError("zephyr.exe exited")
-            if line.endswith(PROMPT.rstrip()) or line == PROMPT.rstrip():
-                if seen_echo:
-                    return out
+            if LOG_LINE.match(line):
+                self._keep(line)
                 continue
-            if not seen_echo and line.endswith(command):
-                seen_echo = True
+            if not seen_echo:
+                echo += line
+                if command in echo:
+                    seen_echo = True
                 continue
-            if seen_echo:
-                out.append(line)
+            if line.rstrip().endswith(PROMPT.rstrip()):
+                return out
+            out.append(line)
 
     def shell_kv(self, command, timeout=5.0):
         """Parses `key: value` lines of a shell command into a dict."""

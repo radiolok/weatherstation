@@ -157,7 +157,11 @@ def test_smp_over_udp(dut):
     from smpclient.requests.os_management import EchoWrite
     from smpclient.transport.udp import SMPUDPTransport
 
-    dut.wait_for(r"SMP over UDP port 1337: 0", timeout=20)
+    try:
+        dut.wait_for(r"SMP over UDP port 1337: 0", timeout=20)
+    except TimeoutError:
+        seen = [l for l in dut.history if "SMP" in l or "ws_net" in l or "smp" in l]
+        raise AssertionError(f"SMP not opened; related log: {seen[-20:]}")
 
     async def run():
         async with smpclient.SMPClient(SMPUDPTransport(), "127.0.0.1") as c:
