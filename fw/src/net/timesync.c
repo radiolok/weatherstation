@@ -14,7 +14,7 @@
 
 LOG_MODULE_REGISTER(ws_time, LOG_LEVEL_INF);
 
-#define RETRY_S        30
+#define RETRY_S 30
 
 static K_SEM_DEFINE(sync_now, 0, 1);
 
