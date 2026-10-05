@@ -5,6 +5,7 @@
  */
 #include <errno.h>
 #include <string.h>
+#include <strings.h>
 
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>

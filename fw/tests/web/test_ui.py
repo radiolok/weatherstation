@@ -21,6 +21,13 @@ def wait_msg(page, ok=True):
     return text
 
 
+def click_msg(page, selector, ok=True):
+    """Clicks and waits for the status line of this action, not a stale one."""
+    page.evaluate("() => { const m = document.querySelector('#msg'); m.className = ''; m.textContent = ''; }")
+    page.click(selector)
+    return wait_msg(page, ok)
+
+
 def tab(page, name):
     page.click(f"#tabs [data-tab={name}]")
 
@@ -44,8 +51,7 @@ def test_drag_item_onto_canvas_and_save(page, base_url):
         page.locator("#ed-canvas"), target_position={"x": 8 * 40, "y": 8 * 2})
     assert page.locator("#props h3").inner_text() == "Часы"
     assert page.locator("#dirty").is_visible()
-    page.click("#btn-save")
-    wait_msg(page)
+    click_msg(page, "#btn-save")
     items = get_json(base_url, "/api/screens")["screens"][-1]["items"]
     assert len(items) == before + 1
     assert items[-1]["type"] == "clock" and items[-1]["x"] == 40
@@ -60,8 +66,7 @@ def test_validation_errors_are_shown(page):
     page.locator("#props label.prop", has_text="x").locator("input").press("Enter")
     page.wait_for_selector("#ed-errors.bad", timeout=5000)
     assert "items" in page.locator("#ed-errors").inner_text()
-    page.click("#btn-save")
-    wait_msg(page, ok=False)
+    click_msg(page, "#btn-save", ok=False)
     assert "Не сохранено" in page.locator("#msg").inner_text()
 
 
@@ -111,8 +116,7 @@ def test_picto_editor(page, base_url):
     assert rows[0] == "0600" and all(r == "0000" for r in rows[1:])
     page.click(".pic-tools [data-op=invert]")
     assert page.evaluate("WSApp.state.cfg.pictos[0].rows[0]") == "01ff"
-    page.click("#btn-save")
-    wait_msg(page)
+    click_msg(page, "#btn-save")
     saved = get_json(base_url, "/api/screens")
     assert saved["pictos"][0]["rows"][0] == "01ff"
     assert any(p["name"] == saved["pictos"][0]["name"] for p in get_json(base_url, "/api/glyphs")["user_pictos"])
@@ -124,13 +128,11 @@ def test_settings_roundtrip(page, base_url):
     psk = page.locator("[name='wifi.psk']")
     assert psk.input_value() == ""
     page.fill("[name='metar.icao']", "unnt")
-    page.click("#settings-form button[type=submit]")
-    wait_msg(page, ok=False)
+    click_msg(page, "#settings-form button[type=submit]", ok=False)
     assert "metar.icao" in page.locator("#msg").inner_text()
     page.fill("[name='metar.icao']", "UNNT")
     page.fill("[name='mqtt.host']", "broker.lan")
-    page.click("#settings-form button[type=submit]")
-    wait_msg(page)
+    click_msg(page, "#settings-form button[type=submit]")
     s = get_json(base_url, "/api/settings")
     assert s["mqtt.host"] == "broker.lan"
     assert "wifi.psk" not in s  # secrets never leave the device
@@ -144,8 +146,7 @@ def test_wifi_scan(page):
 
 def test_preview_on_sign(page, base_url, backend):
     tab(page, "editor")
-    page.click("#btn-preview")
-    wait_msg(page)
+    click_msg(page, "#btn-preview")
     if backend == "mock":
         log = get_json(base_url, "/__mock/log")
         assert any(e["path"] == "/api/display/preview" for e in log)
@@ -161,8 +162,7 @@ def test_status_page(page):
 def test_factory_and_rollback(page, base_url):
     page.locator("#palette .pal-item").count()  # page ready
     page.evaluate("WSApp.state.cfg.screens[0].name = 'X'")
-    page.click("#btn-save")
-    wait_msg(page)
+    click_msg(page, "#btn-save")
     assert get_json(base_url, "/api/screens")["screens"][0]["name"] == "X"
     page.click("#btn-rollback")
     page.wait_for_function("document.querySelector('#msg').textContent.includes('предыдущая')")

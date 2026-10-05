@@ -8,18 +8,15 @@ import asyncio
 import hashlib
 import json
 import os
-import subprocess
 import threading
 import urllib.error
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from pathlib import Path
 
 import pytest
 
 from helpers import connect_mqtt, wait_until
 
-ROOT = Path(__file__).resolve().parents[3]
 IMAGE = os.urandom(64 * 1024 + 123)  # not a multiple of the flash write block
 SHA = hashlib.sha256(IMAGE).hexdigest()
 
@@ -150,34 +147,21 @@ def test_watchdog_catches_a_hung_thread(dut):
     dut.wait_for(r"weatherstation \S+", timeout=30)
 
 
-def test_smp_over_udp(dut, tmp_path):
-    """MCUmgr: echo and an image upload into slot 1 with smpclient (smpmgr's library)."""
+def test_smp_over_udp(dut):
+    """MCUmgr over UDP answers (smpclient, the library behind smpmgr).
+
+    Image upload over SMP needs the image group, which needs a bootloader
+    (overlay-smp-img.conf on the ESP32-S3): checked on the board in H16.
+    """
     smpclient = pytest.importorskip("smpclient")
-    from smpclient.requests.image_management import ImageStatesRead
     from smpclient.requests.os_management import EchoWrite
     from smpclient.transport.udp import SMPUDPTransport
 
-    payload = tmp_path / "payload.bin"
-    payload.write_bytes(os.urandom(20000))
-    signed = tmp_path / "signed.bin"
-    key = ROOT / "fw/keys/dev-ecdsa-p256-TEST-ONLY.pem"
-    try:
-        subprocess.run(["imgtool", "sign", "--key", str(key), "--header-size", "0x200", "--pad-header",
-                        "--align", "4", "--version", "9.9.11", "--slot-size", "0x100000",
-                        str(payload), str(signed)], check=True, capture_output=True)
-    except (FileNotFoundError, subprocess.CalledProcessError) as e:
-        pytest.skip(f"imgtool: {e}")
     dut.wait_for(r"SMP over UDP port 1337: 0", timeout=20)
 
     async def run():
         async with smpclient.SMPClient(SMPUDPTransport(), "127.0.0.1") as c:
-            r = await c.request(EchoWrite(d="weatherstation"))
-            assert r.r == "weatherstation"
-            async for _ in c.upload(signed.read_bytes()):
-                pass
-            states = await c.request(ImageStatesRead())
-            return states
+            return await c.request(EchoWrite(d="weatherstation"))
 
-    states = asyncio.run(asyncio.wait_for(run(), 120))
-    slots = {s.slot: s for s in states.images}
-    assert 1 in slots and slots[1].version.startswith("9.9.11"), states
+    r = asyncio.run(asyncio.wait_for(run(), 30))
+    assert r.r == "weatherstation"

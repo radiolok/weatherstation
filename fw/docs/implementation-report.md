@@ -33,7 +33,7 @@
 - `.github/workflows/fw.yml`.
 - `tools/sign-simulator/core.js`: экспорт глифов и вспомогательных функций для генератора.
 - `tools/glyphgen/`: генератор шрифтов и эталонов.
-- `au/metar_cpp`: ветка `runway-state-recent-weather`, исправлен разбор `KMH`.
+- `au/metar_cpp`: ветка `runway-state-recent-weather`, исправлены разбор `KMH`, сборка с picolibc (`strdup`, `strtok_r`) и неинициализированный тип облаков.
 - В корневом README обновлён только раздел «Состояние».
 
 ## Тесты и как их запустить
@@ -49,7 +49,7 @@
 | сборка ESP32-S3 + MCUboot, подписанный образ, размеры | — | `fw/scripts/build-target.sh` | `target`, `size` |
 | H1–H19 `fw/tests/hw` — 20 тестов | плата | `west twister -T fw -p esp32s3_devkitc/esp32s3/procpu --device-testing --device-serial /dev/ttyUSB0 --tag hw -- --hw-operator -s` | — |
 
-Зависимости pytest — в `fw/tests/integration/requirements.txt`: pytest, paho-mqtt, playwright, cryptography, smpclient, imgtool.
+Зависимости pytest — в `fw/tests/integration/requirements.txt`: pytest, paho-mqtt, playwright, cryptography, smpclient.
 
 ## Что проверено где
 
@@ -78,7 +78,7 @@
 - **Табло.** Вместо UART async API — поток передачи с `uart_poll_out`: одинаково работает на `uart-emul` и ESP32.
 - **Эмулятор BME280** свой: в Zephyr 4.3 его нет.
 - **Сканирование Wi-Fi** до запуска точки доступа, список кешируется. Работает ли скан в режиме AP+STA, покажет H13.
-- **MCUmgr** вынесен в `overlay-smp.conf`, потому что он без аутентификации. Сборка для `native_sim` в CI включает его для теста `smpclient`.
+- **MCUmgr** вынесен в `overlay-smp.conf`, потому что он без аутентификации. Сборка для `native_sim` в CI включает его для теста `smpclient` (echo). Группа образов (`overlay-smp-img.conf`) собирается только на плате: `img_mgmt` требует `CONFIG_FLASH_LOAD_OFFSET`, которого у `native_sim` нет; загрузка через `smpmgr` — H16.
 - **Сроки действия сертификатов** METAR не проверяются (`MBEDTLS_HAVE_TIME_DATE` выключен), см. «Открытые вопросы» в плане.
 - **Загрузка образа со страницы** без sha256, если браузер не в защищённом контексте. Подпись MCUboot проверяется всегда.
 - **Mosquitto в CI** запускается через `docker run` с файлом конфигурации.

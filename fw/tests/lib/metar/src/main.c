@@ -125,6 +125,9 @@ ZTEST(metar, test_conditions)
 		      WS_COND_CLEAR);
 	zassert_equal(map("UUDD 041200Z 20005MPS 9999 OVC030 15/08 Q1015 NOSIG", 1).cond,
 		      WS_COND_CLOUDY);
+	/* automatic stations report an unknown cloud type as "///" */
+	zassert_equal(map("UUDD 041200Z 20005MPS 9999 BKN020/// 15/08 Q1015", 1).cond,
+		      WS_COND_CLOUDY);
 }
 
 ZTEST(metar, test_freezing_fog)
