@@ -43,6 +43,8 @@ class Dut:
         self.strace_path = None
         self.lines = queue.Queue()
         self.history = []
+        self.history_t = []  # wall time of each line, seconds since start
+        self.t0 = time.monotonic()
         self.backlog = []
         self._reader = None
         self._log = None
@@ -57,7 +59,7 @@ class Dut:
             # host socket calls of NSOS, printed with a failure (CI diagnostics)
             self.strace_path = self.workdir / "strace.txt"
             cmd = ["strace", "-f", "--kill-on-exit", "-tt", "-o", str(self.strace_path), "-e",
-                   "trace=socket,accept,accept4,close,dup,epoll_ctl,shutdown,connect", *cmd]
+                   "trace=%network,close,dup,epoll_ctl", *cmd]
         self._log.write(f"\n### start {' '.join(cmd)}\n")
         self.proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                      stderr=subprocess.STDOUT, cwd=self.workdir, bufsize=0)
@@ -77,6 +79,7 @@ class Dut:
                 buf = b""
                 self._log.write(line + "\n")
                 self._log.flush()
+                self.history_t.append(time.monotonic() - self.t0)
                 self.history.append(line)
                 self.lines.put(line)
         self.lines.put(None)
@@ -210,16 +213,19 @@ def dut(zephyr_exe, pytestconfig, request, tmp_path):
     rep = getattr(request.node, "rep_call", None)
     if rep is not None and rep.failed and d.proc.poll() is None:
         # thread states (who waits on what) for the CI output
-        for cmd in ("kernel thread list", "ws status", "ws net"):
+        for cmd in ("kernel uptime", "kernel thread list", "ws status", "ws net"):
             try:
                 d.shell(cmd, timeout=5)
             except Exception as e:  # noqa: BLE001 - diagnostics only
+                d.history_t.append(time.monotonic() - d.t0)
                 d.history.append(f"<{cmd}: {e}>")
     d.stop()
     if rep is not None and rep.failed:
         # the device log in the CI output, next to the failure
         print(f"---- zephyr.exe console, last 250 of {len(d.history)} lines ----")
-        print("\n".join(d.history[-250:]))
+        # wall time next to the uptime of the log lines: is simulated time moving?
+        rows = list(zip(d.history_t, d.history))[-250:]
+        print("\n".join(f"{t:8.3f} {line}" for t, line in rows))
         if d.strace_path and d.strace_path.exists():
             tail = d.strace_path.read_text(errors="replace").splitlines()[-120:]
             print("---- strace, last 120 lines ----")
